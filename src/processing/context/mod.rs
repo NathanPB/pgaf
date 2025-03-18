@@ -6,6 +6,18 @@ use crate::sites::Site;
 pub use gen::*;
 pub use value::*;
 
+/// Holds the information about the execution of a single run on a specific site with its bound run configurations.
+#[derive(Debug, Clone)]
+pub struct Context {
+    #[allow(dead_code)]
+    // The part of the code that uses this is not yet implemented, so it's not dead code.
+    pub site: Site,
+
+    #[allow(dead_code)]
+    // The part of the code that uses this is not yet implemented, so it's not dead code.
+    pub run: config::runs::RunConfig,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -84,16 +96,4 @@ mod tests {
             ))
         );
     }
-}
-
-/// Holds the information about the execution of a single run on a specific site with its bound run configurations.
-#[derive(Debug, Clone)]
-pub struct Context {
-    #[allow(dead_code)]
-    // The part of the code that uses this is not yet implemented, so it's not dead code.
-    pub site: Site,
-
-    #[allow(dead_code)]
-    // The part of the code that uses this is not yet implemented, so it's not dead code.
-    pub run: config::runs::RunConfig,
 }
