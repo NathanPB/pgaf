@@ -3,7 +3,7 @@ mod value;
 
 use crate::config;
 use crate::sites::Site;
-pub use gen::ContextGenerator;
+pub use gen::*;
 pub use value::*;
 
 #[cfg(test)]
