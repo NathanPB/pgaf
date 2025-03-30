@@ -59,7 +59,12 @@ impl<'de> Visitor<'de> for SiteSourceConfigVisitor<'de> {
 
         while let Some(key) = map.next_key::<String>()? {
             match key.as_str() {
-                "type" => resource = Some(map.next_value_seed(self.seed.resource_seed.clone())?),
+                "type" => {
+                    resource = Some(
+                        map.next_value_seed(self.seed.resource_seed.clone())?
+                            .resource,
+                    )
+                }
                 "sample_size" => sample_size = Some(map.next_value()?),
                 _ => {
                     args.insert(key.to_string(), map.next_value()?);

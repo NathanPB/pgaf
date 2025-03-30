@@ -1,6 +1,11 @@
-use super::{PublicIdentifierSeed, Registry, Resource};
+use super::{PublicIdentifier, PublicIdentifierSeed, Registry, Resource};
 use serde::de::DeserializeSeed;
 use serde::Deserializer;
+
+pub struct DeserializedResource<T: Resource> {
+    pub resource: T,
+    pub id: PublicIdentifier,
+}
 
 /// Used to deserialize a [`Resource`] from a string.
 /// This deserializer delegates the deserialization of registry identifiers to
@@ -12,7 +17,7 @@ pub struct ResourceSeed<'a, T: Resource> {
 }
 
 impl<'de, T: Resource + 'de> DeserializeSeed<'de> for ResourceSeed<'de, T> {
-    type Value = T;
+    type Value = DeserializedResource<T>;
 
     /// Deserializes a [`Resource`] from a string.
     /// The string is expected to be a valid [`super::PublicIdentifier`] under the given [`Registry`].
@@ -35,6 +40,10 @@ impl<'de, T: Resource + 'de> DeserializeSeed<'de> for ResourceSeed<'de, T> {
                 id
             ))
         })?;
-        Ok(res.clone())
+
+        Ok(DeserializedResource {
+            id,
+            resource: res.clone(),
+        })
     }
 }
