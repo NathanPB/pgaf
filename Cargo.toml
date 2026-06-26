@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-gdal = { version = "0.17.1", features = ["bindgen"] }
+gdal = { version = "0.19", features = ["bindgen"] }
 clap = { version = "4.5.29", features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }
 validator = { version = "0.20.0", features = ["derive"] }
