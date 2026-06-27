@@ -3,8 +3,11 @@ name = "pythia-rs"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+gdal = ["dep:gdal"]
+
 [dependencies]
-gdal = { version = "0.19", features = ["bindgen"] }
+gdal = { version = "0.19", features = ["bindgen"], optional = true }
 clap = { version = "4.5.29", features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }
 validator = { version = "0.20.0", features = ["derive"] }

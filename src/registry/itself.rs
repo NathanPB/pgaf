@@ -1,6 +1,5 @@
 use super::resources::*;
 use super::{Namespace, Registry};
-use crate::sites::drivers::*;
 use std::error::Error;
 
 pub fn init_itself(registries: &mut super::Registries) -> Result<Namespace, Box<dyn Error>> {
@@ -13,17 +12,25 @@ fn register_sitegen_drivers(
     namespace: &Namespace,
     registry: &mut Registry<SiteGeneratorDriverResource>,
 ) -> Result<(), Box<dyn Error>> {
-    registry.register(
-        &namespace,
-        "vector",
-        SiteGeneratorDriverResource(DRIVER_VECTOR.clone().coerce_to_dynamic()),
-    )?;
+    use crate::sites::drivers::*;
 
-    registry.register(
-        &namespace,
-        "raster",
-        SiteGeneratorDriverResource(DRIVER_RASTER.clone().coerce_to_dynamic()),
-    )?;
+    #[cfg(feature = "gdal")]
+    {
+        registry.register(
+            &namespace,
+            "vector",
+            SiteGeneratorDriverResource(DRIVER_VECTOR.clone().coerce_to_dynamic()),
+        )?;
+    }
+
+    #[cfg(feature = "gdal")]
+    {
+        registry.register(
+            &namespace,
+            "raster",
+            SiteGeneratorDriverResource(DRIVER_RASTER.clone().coerce_to_dynamic()),
+        )?;
+    }
 
     Ok(())
 }
