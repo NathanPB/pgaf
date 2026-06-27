@@ -1,3 +1,4 @@
+mod eval;
 mod gen;
 mod template_str;
 mod value;

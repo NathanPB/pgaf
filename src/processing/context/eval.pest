@@ -1,0 +1,32 @@
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
+
+null_val  = { "null" }
+bool_val  = { "true" | "false" }
+float_val = @{ "-"? ~ ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT+ }
+int_val   = @{ "-"? ~ ASCII_DIGIT+ }
+
+string_template = ${ "'" ~ template_content* ~ "'" }
+template_content = _{ interpolation | literal_text }
+interpolation = !{ "${" ~ expr ~ "}" }
+literal_text = @{ (!"'" ~ !"${" ~ ANY)+ }
+
+ident = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+
+arg = { ident ~ ":" ~ expr }
+args = { arg ~ ("," ~ arg)* }
+function_call = { ident ~ "(" ~ args? ~ ")" }
+
+expr = { 
+    null_val | 
+    bool_val | 
+    float_val | 
+    int_val | 
+    string_template | 
+    function_call | 
+    ident 
+}
+
+eval_block = { "$={" ~ expr ~ "}" }
+top_level_input = { eval_block | template_content* }
+
+main = _{ SOI ~ top_level_input ~ EOI }
