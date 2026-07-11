@@ -1,5 +1,5 @@
 use super::Context;
-use crate::processing::context::eval::Expr;
+use crate::processing::context::expr::Expr;
 use crate::processing::PipelineData;
 use crate::registry::Registries;
 use serde::de::DeserializeSeed;
@@ -34,7 +34,7 @@ impl<'de> DeserializeSeed<'de> for ContextValueDeserializeSeed<'de> {
     where
         D: Deserializer<'de>,
     {
-        use super::eval::Expr;
+        use super::expr::Expr;
 
         #[derive(Deserialize)]
         #[serde(untagged)]
