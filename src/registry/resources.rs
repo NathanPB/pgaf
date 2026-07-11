@@ -1,3 +1,4 @@
+use crate::functions;
 use crate::registry::Resource;
 use crate::sites::SiteGenerator;
 use crate::sites::SiteGeneratorDriver;
@@ -9,3 +10,8 @@ pub struct SiteGeneratorDriverResource(
 );
 
 impl Resource for SiteGeneratorDriverResource {}
+
+#[derive(Clone)]
+pub struct FunctionDriverResource(pub functions::Driver);
+
+impl Resource for FunctionDriverResource {}

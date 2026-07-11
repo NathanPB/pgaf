@@ -5,6 +5,7 @@ use std::error::Error;
 pub fn init_itself(registries: &mut super::Registries) -> Result<Namespace, Box<dyn Error>> {
     let namespace = registries.claim_namespace("std")?;
     register_sitegen_drivers(&namespace, registries.regmut_sitegen_drivers())?;
+    register_function_drivers(&namespace, registries.regmut_function_drivers())?;
     Ok(namespace)
 }
 
@@ -31,6 +32,21 @@ fn register_sitegen_drivers(
             SiteGeneratorDriverResource(DRIVER_RASTER.clone().coerce_to_dynamic()),
         )?;
     }
+
+    Ok(())
+}
+
+fn register_function_drivers(
+    namespace: &Namespace,
+    registry: &mut Registry<FunctionDriverResource>,
+) -> Result<(), Box<dyn Error>> {
+    use crate::functions::functions::*;
+
+    registry.register(
+        namespace,
+        "function",
+        FunctionDriverResource(GREET_DRIVER.clone()),
+    )?;
 
     Ok(())
 }

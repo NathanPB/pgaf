@@ -16,8 +16,8 @@ mod serialize;
 use crate::utils::threehashmap::K2HashMap;
 use error::*;
 pub use identifier::{PublicIdentifier, PublicIdentifierSeed};
-pub use serialize::{ResourceSeed};
 use resources::*;
+pub use serialize::ResourceSeed;
 use std::collections::HashSet;
 use std::sync::LazyLock;
 
@@ -168,6 +168,7 @@ impl<T: Resource> Registry<T> {
 pub struct Registries {
     namespaces: HashSet<Namespace>,
     reg_sitegen_drivers: Registry<SiteGeneratorDriverResource>,
+    reg_function_drivers: Registry<FunctionDriverResource>,
 }
 
 impl Registries {
@@ -176,6 +177,7 @@ impl Registries {
         Self {
             namespaces: HashSet::new(),
             reg_sitegen_drivers: Registry::new(),
+            reg_function_drivers: Registry::new(),
         }
     }
 
@@ -207,6 +209,14 @@ impl Registries {
 
     pub fn regmut_sitegen_drivers(&mut self) -> &mut Registry<SiteGeneratorDriverResource> {
         &mut self.reg_sitegen_drivers
+    }
+
+    pub fn reg_function_drivers(&self) -> &Registry<FunctionDriverResource> {
+        &self.reg_function_drivers
+    }
+
+    pub fn regmut_function_drivers(&mut self) -> &mut Registry<FunctionDriverResource> {
+        &mut self.reg_function_drivers
     }
 }
 

@@ -2,6 +2,7 @@
 
 mod config;
 mod data;
+mod functions;
 mod processing;
 mod registry;
 mod sites;
