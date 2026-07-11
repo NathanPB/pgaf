@@ -10,6 +10,7 @@ pub enum PrimitiveContextValue {
     Int(i64),
     Float(f64),
     String(String),
+    Null,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
@@ -32,6 +33,7 @@ impl PrimitiveContextValue {
             PrimitiveContextValue::Int(i) => i.to_string(),
             PrimitiveContextValue::Float(f) => f.to_string(),
             PrimitiveContextValue::String(s) => s.clone(),
+            PrimitiveContextValue::Null => "null".to_string(),
         }
     }
 }
