@@ -136,23 +136,29 @@ impl<'a> ConfigSeedBuilder<'a> {
             .registries
             .ok_or(ConfigSeedBuilderError::MissingRegistries)?;
 
+        let default_namespace = self
+            .default_namespace
+            .ok_or(ConfigSeedBuilderError::MissingDefaultNamespace)?;
+
         Ok(ConfigSeed {
             sites_seed: SiteSourceConfigSeed {
                 resource_seed: ResourceSeed {
                     registry: registries.reg_sitegen_drivers(),
                     id_seed: PublicIdentifierSeed {
-                        default_namespace: self
-                            .default_namespace
-                            .ok_or(ConfigSeedBuilderError::MissingDefaultNamespace)?,
+                        default_namespace: default_namespace.clone(),
                     },
                 },
             },
+            default_namespace,
+            registries,
         })
     }
 }
 
 pub struct ConfigSeed<'a> {
     pub sites_seed: SiteSourceConfigSeed<'a>,
+    pub default_namespace: String,
+    pub registries: &'a Registries,
 }
 
 impl<'de> DeserializeSeed<'de> for ConfigSeed<'de> {
@@ -187,7 +193,12 @@ impl<'de> Visitor<'de> for ConfigVisitor<'de> {
         while let Some(key) = map.next_key::<String>()? {
             match key.as_str() {
                 "sites" => sites = Some(map.next_value_seed(self.seed.sites_seed.clone())?),
-                "runs" => runs = Some(map.next_value()?),
+                "runs" => {
+                    runs = Some(map.next_value_seed(RunConfigVecSeed {
+                        default_namespace: self.seed.default_namespace.clone(),
+                        registries: self.seed.registries,
+                    })?)
+                }
                 _ => return Err(serde::de::Error::unknown_field(&key, &["sites"])),
             }
         }

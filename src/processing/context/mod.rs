@@ -1,13 +1,11 @@
 mod eval;
 mod gen;
-mod template_str;
 mod value;
 
 use crate::config;
 use crate::sites::Site;
 pub use gen::*;
 use std::path::PathBuf;
-pub use template_str::*;
 pub use value::*;
 
 /// Holds the information about the execution of a single run on a specific site with its bound run configurations.

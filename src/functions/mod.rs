@@ -97,7 +97,7 @@ mod tests {
     use super::*;
     use crate::config::runs::RunConfig;
     use crate::data::GeoDeg;
-    use crate::processing::context::{ContextValue, PrimitiveContextValue, TemplateString};
+    use crate::processing::context::{ContextValue, PrimitiveContextValue};
     use crate::sites::Site;
     use serde::Deserialize;
     use std::path::PathBuf;
@@ -162,8 +162,11 @@ mod tests {
             .into_iter()
             .collect(),
         );
-        let ts = serde_json::from_str::<TemplateString>(r#""Hello ${user_name}""#).unwrap();
-        let args = [("value".into(), ContextValue::TemplateString(ts))].into();
+        let ts = ContextValue::StringTemplate(vec![
+            ContextValue::Prim(PrimitiveContextValue::String("Hello ".to_string())),
+            ContextValue::Ident("user_name".to_string()),
+        ]);
+        let args = [("value".into(), ts)].into();
 
         let result = FunctionDriver::<StringFn, StringArgs>::new()
             .coerce_to_dynamic()
