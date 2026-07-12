@@ -18,19 +18,21 @@ fn register_sitegen_drivers(
 
     #[cfg(feature = "gdal")]
     {
+        let driver = DRIVER_VECTOR;
         registry.register(
-            &namespace,
+            namespace,
             "vector",
-            SiteGeneratorDriverResource(DRIVER_VECTOR.clone().coerce_to_dynamic()),
+            SiteGeneratorDriverResource(driver.clone().coerce_to_dynamic()),
         )?;
     }
 
     #[cfg(feature = "gdal")]
     {
+        let driver = DRIVER_RASTER;
         registry.register(
-            &namespace,
+            namespace,
             "raster",
-            SiteGeneratorDriverResource(DRIVER_RASTER.clone().coerce_to_dynamic()),
+            SiteGeneratorDriverResource(driver.clone().coerce_to_dynamic()),
         )?;
     }
 

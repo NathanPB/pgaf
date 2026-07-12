@@ -51,11 +51,11 @@ impl Iterator for VectorSiteGenerator {
                 .map(|l| unsafe { std::mem::transmute::<Layer, Layer<'static>>(l) });
 
             if let Some(layer) = self.layer.as_mut() {
-                self.feat_iter = Box::new(Some(unsafe {
+                *self.feat_iter = Some(unsafe {
                     std::mem::transmute::<FeatureIterator, FeatureIterator<'static>>(
                         layer.features(),
                     )
-                }));
+                });
                 return self.next();
             }
             return None;
@@ -66,7 +66,7 @@ impl Iterator for VectorSiteGenerator {
                 Some(feat) => feature_to_site(&feat, &self.site_id_key),
                 None => {
                     self.curr_layer += 1;
-                    self.feat_iter = Box::new(None);
+                    *self.feat_iter = None;
                     self.next()
                 }
             },
