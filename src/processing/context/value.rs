@@ -1,7 +1,10 @@
+use std::collections::HashMap;
+
 use super::Context;
+use crate::functions;
 use crate::processing::context::expr::Expr;
 use crate::processing::PipelineData;
-use crate::registry::Registries;
+use crate::registry::{PublicIdentifier, PublicIdentifierParseError, Registries};
 use serde::de::DeserializeSeed;
 use serde::{Deserialize, Deserializer, Serialize};
 
@@ -15,10 +18,15 @@ pub enum PrimitiveContextValue {
     Null,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ContextValue {
     StringTemplate(Vec<ContextValue>),
     Prim(PrimitiveContextValue),
+    Function {
+        id: PublicIdentifier,
+        function: functions::Driver,
+        args: functions::FunctionArgs,
+    },
     Ident(String),
 }
 
@@ -54,7 +62,6 @@ impl<'de> DeserializeSeed<'de> for ContextValueDeserializeSeed<'de> {
     }
 }
 
-// [`registries`] and [`default_namespace`] params will be using in function resolution
 #[allow(clippy::only_used_in_recursion)]
 fn expr_to_context_value(
     expr: Expr,
@@ -74,8 +81,29 @@ fn expr_to_context_value(
                 .collect();
             ContextValue::StringTemplate(frags?)
         }
-        Expr::FunctionCall { name, args: _ } => {
-            todo!("Function calls not supported yet (attempting to parse {name})")
+        Expr::FunctionCall { name, args } => {
+            let id = PublicIdentifier::from_with_default_namespace(&name, default_namespace)
+                .map_err(|err| ContextEvaluationError::IdentifierParse(name, err))?;
+
+            let function = registries
+                .reg_function_drivers()
+                .get(&id)
+                .ok_or(ContextEvaluationError::FunctionNotFound(id.clone()))?
+                .clone();
+
+            let args: HashMap<String, ContextValue> = args
+                .into_iter()
+                .map(|(k, expr)| {
+                    let v = expr_to_context_value(expr, registries, default_namespace)?;
+                    Ok((k, v))
+                })
+                .collect::<Result<HashMap<_, _>, ContextEvaluationError>>()?;
+
+            ContextValue::Function {
+                id,
+                function: function.0,
+                args,
+            }
         }
         Expr::Ident(v) => ContextValue::Ident(v),
     })
@@ -85,6 +113,12 @@ fn expr_to_context_value(
 pub enum ContextEvaluationError {
     #[error("Identifier '{0}' could not be resolved.")]
     IdentifierNotFound(String),
+    #[error("Function with identifier '{0}' could not be resolved.")]
+    FunctionNotFound(PublicIdentifier),
+    #[error("Failed to parse identifier '{0}': {1}")]
+    IdentifierParse(String, PublicIdentifierParseError),
+    #[error("Failed to invoke function '{0}': {1}")]
+    FunctionInvoke(PublicIdentifier, functions::FunctionRuntimeError),
 }
 
 impl PrimitiveContextValue {
@@ -115,6 +149,9 @@ impl ContextValue {
 
                 Ok(PrimitiveContextValue::String(evaluated?.concat()))
             }
+            ContextValue::Function { id, function, args } => function
+                .invoke(args, ctx)
+                .map_err(|e| ContextEvaluationError::FunctionInvoke(id.clone(), e)),
         }
     }
 }
@@ -131,15 +168,45 @@ impl PipelineData for Context {}
 mod tests {
     use super::*;
     use crate::data::GeoDeg;
+    use crate::functions::{Driver, Function, FunctionDriver};
+    use crate::registry::resources::FunctionDriverResource;
     use crate::sites::Site;
     use std::error::Error;
     use std::path::PathBuf;
+    use std::sync::LazyLock;
+
+    struct FnUppercase;
+
+    #[derive(Deserialize)]
+    struct FnUppercaseArgs {
+        str: String,
+    }
+
+    impl Function<FnUppercaseArgs> for FnUppercase {
+        fn invoke(
+            args: FnUppercaseArgs,
+            _: &Context,
+        ) -> Result<PrimitiveContextValue, functions::FunctionRuntimeError> {
+            Ok(PrimitiveContextValue::String(args.str.to_uppercase()))
+        }
+    }
+
+    static FN_UPPERCASE: LazyLock<Driver> =
+        LazyLock::new(|| FunctionDriver::<FnUppercase, _>::new().coerce_to_dynamic());
 
     fn deserialize_context_value(
         json: &str,
         seed: Option<ContextValueDeserializeSeed>,
     ) -> Result<ContextValue, Box<dyn Error>> {
-        let registries = Registries::new();
+        let mut registries = Registries::new();
+        let namespace = registries.claim_namespace("std")?;
+
+        registries.regmut_function_drivers().register(
+            &namespace,
+            "uppercase",
+            FunctionDriverResource(FN_UPPERCASE.clone()),
+        )?;
+
         let seed = seed.unwrap_or(ContextValueDeserializeSeed {
             registries: &registries,
             default_namespace: "std".to_string(),
@@ -210,13 +277,20 @@ mod tests {
 
     #[test]
     fn deserialize_complex_ast() -> Result<(), Box<dyn Error>> {
-        // TODO: add an inner function call formatDate(date: today)
-        let json = r#""Hello ${username}, today is ${today} and we are vibing.""#;
+        let json = r#""Hello ${uppercase(str: username)}, today is ${today} and we are vibing.""#;
         assert_eq!(
             deserialize_context_value(json, None)?,
             ContextValue::StringTemplate(vec![
                 ContextValue::Prim(PrimitiveContextValue::String("Hello ".to_string())),
-                ContextValue::Ident("username".to_string()),
+                ContextValue::Function {
+                    id: PublicIdentifier::new("std".to_string(), "uppercase".to_string()),
+                    function: FN_UPPERCASE.clone(),
+                    args: [(
+                        "str".to_string(),
+                        ContextValue::Ident("username".to_string())
+                    )]
+                    .into()
+                },
                 ContextValue::Prim(PrimitiveContextValue::String(", today is ".to_string())),
                 ContextValue::Ident("today".to_string()),
                 ContextValue::Prim(PrimitiveContextValue::String(

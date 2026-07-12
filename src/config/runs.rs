@@ -2,7 +2,7 @@ use crate::processing::context::{ContextValue, ContextValueDeserializeSeed};
 use crate::registry::Registries;
 use regex::Regex;
 use serde::de::{DeserializeSeed, MapAccess, SeqAccess, Visitor};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -43,7 +43,7 @@ fn validate_template_file_exists(path: &Path) -> Result<(), ValidationError> {
     Ok(())
 }
 
-#[derive(Validate, Serialize, Deserialize, Clone, Debug)]
+#[derive(Validate, Serialize, Clone, Debug)]
 pub struct RunConfig {
     #[validate(regex(path = *RE_VALID_RUN_NAME, message = "Run name must be alphanumeric and contain only underscores and dashes"))]
     pub name: String,
@@ -51,7 +51,7 @@ pub struct RunConfig {
     #[validate(custom(function = "validate_template_file_exists"))]
     pub template: PathBuf,
 
-    #[serde(flatten)]
+    #[serde(skip)]
     pub extra: HashMap<String, ContextValue>,
 }
 

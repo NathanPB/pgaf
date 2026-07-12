@@ -45,7 +45,7 @@ fn register_function_drivers(
 
     registry.register(
         namespace,
-        "function",
+        "greet",
         FunctionDriverResource(GREET_DRIVER.clone()),
     )?;
 

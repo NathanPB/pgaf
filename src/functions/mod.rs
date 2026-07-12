@@ -6,27 +6,14 @@ use crate::processing::context::{
 };
 use serde::de::DeserializeOwned;
 use std::collections::HashMap;
-use std::error::Error;
 use std::fmt::{Debug, Display};
 use std::marker::PhantomData;
 
 pub type FunctionArgs = HashMap<String, ContextValue>;
 
-#[derive(thiserror::Error, Debug)]
-pub enum FunctionError {
-    #[error("Runtime error: {0}")]
-    RuntimeError(FunctionRuntimeError),
-    #[error("Type conversion error: {0}")]
-    ConversionError(String),
-}
-
-#[derive(thiserror::Error, Debug)]
-pub enum FunctionRuntimeError {
-    #[error("{0}")]
-    Structured(#[source] Box<dyn Error>),
-    #[error("{0}")]
-    Message(String),
-}
+#[derive(thiserror::Error, Debug, PartialEq)]
+#[error("Runtime error: {0}")]
+pub struct FunctionRuntimeError(pub String);
 
 #[derive(thiserror::Error, Debug)]
 pub enum FunctionArgParseError {
@@ -74,13 +61,21 @@ fn invoker_impl<F: Function<A>, A: DeserializeOwned + Send + Sync>(
     ctx: &Context,
 ) -> Result<PrimitiveContextValue, FunctionRuntimeError> {
     let a = deserializer::deserialize_args::<A>(args.clone(), ctx)
-        .map_err(|e| FunctionRuntimeError::Message(e.to_string()))?;
+        .map_err(|e| FunctionRuntimeError(e.to_string()))?;
 
     F::invoke(a, ctx)
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Driver(InvokeFn);
+
+/// **WARNING:** [`PartialEq`] is implemented for [`Driver`] solely to fulfil a badly-placed `derive(PartialEq)`.
+/// This comparison always results in `true`.
+impl PartialEq for Driver {
+    fn eq(&self, _: &Self) -> bool {
+        true
+    }
+}
 
 impl Driver {
     pub fn invoke(

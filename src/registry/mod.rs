@@ -14,7 +14,7 @@ pub mod resources;
 mod serialize;
 
 use error::*;
-pub use identifier::{PublicIdentifier, PublicIdentifierSeed};
+pub use identifier::{PublicIdentifier, PublicIdentifierParseError, PublicIdentifierSeed};
 use resources::*;
 pub use serialize::ResourceSeed;
 use std::collections::{HashMap, HashSet};

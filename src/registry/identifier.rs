@@ -2,6 +2,12 @@ use crate::registry::RE_VALID_NAMESPACE_AND_ID;
 use serde::de::DeserializeSeed;
 use serde::{Deserialize, Serialize};
 
+#[derive(thiserror::Error, Debug, PartialEq)]
+pub enum PublicIdentifierParseError {
+    #[error("Bad Format")]
+    BadFormat,
+}
+
 /// Represents a combination of [`super::Namespace`] and [`super::Identifier`]. The different between this and [`super::Identifier`] is that
 ///  [`super::Identifier`] requires the namespace to be in the [`super::Namespace`] struct, that is supposed to be private and owned by the plugin/extension.
 /// [`PublicIdentifier`], however, allows for any part of the program to encapsulate a namespace and ID.
@@ -15,6 +21,27 @@ impl PublicIdentifier {
     /// Creates a new [`PublicIdentifier`] under the given `namespace` and `id`.
     pub fn new(namespace: String, id: String) -> Self {
         Self { namespace, id }
+    }
+
+    pub fn from_with_default_namespace(
+        id: &str,
+        default_namespace: &str,
+    ) -> Result<PublicIdentifier, PublicIdentifierParseError> {
+        let captures = RE_VALID_NAMESPACE_AND_ID
+            .captures(id)
+            .ok_or(PublicIdentifierParseError::BadFormat)?;
+
+        let namespace = captures
+            .name("ns")
+            .map(|m| m.as_str())
+            .unwrap_or(default_namespace);
+
+        let id = captures.name("id").map(|m| m.as_str()).unwrap(); // The regex ensures that "id" exists. If it doesn't, it's a good reason to panic.
+
+        Ok(PublicIdentifier {
+            namespace: namespace.to_string(),
+            id: id.to_string(),
+        })
     }
 }
 
@@ -55,20 +82,13 @@ impl<'de> DeserializeSeed<'de> for PublicIdentifierSeed {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        let captures = RE_VALID_NAMESPACE_AND_ID
-            .captures(&s)
-            .ok_or(serde::de::Error::custom(format!( "Identifier must be in the format of `<namespace>:<id>`. Examples are `foo:bar` or `bar` (assumed to be in the default namespace `{}`).", self.default_namespace)))?;
 
-        let namespace = captures
-            .name("ns")
-            .map(|m| m.as_str())
-            .unwrap_or(self.default_namespace.as_str());
-
-        let id = captures.name("id").map(|m| m.as_str()).unwrap(); // The regex ensures that "id" exists. If it doesn't, it's a good reason to panic.
-
-        Ok(PublicIdentifier {
-            namespace: namespace.to_string(),
-            id: id.to_string(),
-        })
+        match PublicIdentifier::from_with_default_namespace(&s, &self.default_namespace) {
+            Ok(id) => Ok(id),
+            Err(PublicIdentifierParseError::BadFormat) => {
+                let msg = format!("Identifier must be in the format of `<namespace>:<id>`. Examples are `foo:bar` or `bar` (assumed to be in the default namespace `{}`).", self.default_namespace);
+                Err(serde::de::Error::custom(msg))
+            }
+        }
     }
 }
