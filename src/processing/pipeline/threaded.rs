@@ -8,9 +8,8 @@ use std::sync::Arc;
 use std::thread;
 use std::thread::ScopedJoinHandle;
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub struct NotEnoughWorkersError;
-impl Error for NotEnoughWorkersError {}
 
 impl std::fmt::Display for NotEnoughWorkersError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -27,7 +26,7 @@ impl<O: PipelineData> ThreadedPipeline<O> {
         workers: usize,
     ) -> Result<ThreadedPipeline<O>, NotEnoughWorkersError> {
         if workers <= 1 {
-            return Err(NotEnoughWorkersError.into());
+            return Err(NotEnoughWorkersError);
         }
 
         Ok(ThreadedPipeline {
@@ -56,8 +55,8 @@ impl<O: PipelineData + 'static> Pipeline for ThreadedPipeline<O> {
                 .enumerate()
                 .map(move |(i, _)| {
                     s.spawn(move || {
-                        // TODO better error recovery
-                        if let Err(err) = self.processor.process(&tx, &rx, &templates) {
+                        // TODO: better error recovery
+                        if let Err(err) = self.processor.process(tx, rx, templates) {
                             panic!("ThreadedPipeline: Worker Thread {} crashed: {}", i, err);
                         }
                     })
@@ -65,10 +64,12 @@ impl<O: PipelineData + 'static> Pipeline for ThreadedPipeline<O> {
                 .collect();
 
             thread_pool.into_iter().enumerate().for_each(|(i, t)| {
-                t.join().expect(&format!(
-                    "ThreadedPipeline: Worker Thread {} crashed when joining.",
-                    i
-                ));
+                t.join().unwrap_or_else(|_| {
+                    panic!(
+                        "ThreadedPipeline: Worker Thread {} crashed when joining.",
+                        i
+                    )
+                });
             });
 
             Ok(())

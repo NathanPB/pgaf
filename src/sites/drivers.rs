@@ -1,6 +1,6 @@
-use super::config::*;
-use super::SiteGeneratorDriver;
-use crate::sites::gen::*; // TODO move sitegen to sites::gen
+#![allow(unused_imports)]
+
+use super::{config::*, gen::*, SiteGeneratorDriver};
 use std::sync::{Arc, LazyLock};
 
 #[cfg(feature = "gdal")]

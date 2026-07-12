@@ -10,14 +10,14 @@ use serde_inline_default::serde_inline_default;
 use std::borrow::Cow;
 use std::error::Error;
 use std::fmt;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use thiserror::Error;
 use validator::{Validate, ValidationError};
 
 static ERRCODE_WORKDIR_NOT_DIR: &str = "ERRCODE_WORKDIR_NOT_DIR";
 static ERRCODE_WORKDIR_NOT_EMPTY: &str = "ERRCODE_WORKDIR_NOT_EMPTY";
 
-fn validate_workdir_is_directory(path: &PathBuf) -> Result<(), ValidationError> {
+fn validate_workdir_is_directory(path: &Path) -> Result<(), ValidationError> {
     if path.exists() && !path.is_dir() {
         return Err(
             ValidationError::new(ERRCODE_WORKDIR_NOT_DIR).with_message(Cow::from(format!(
@@ -98,70 +98,30 @@ pub struct Config {
     pub runs: Vec<RunConfig>,
 }
 
-#[derive(Debug, Error)]
-pub enum ConfigSeedBuilderError {
-    #[error("Missing default namespace")]
-    MissingDefaultNamespace,
-    #[error("Missing registries")]
-    MissingRegistries,
-}
-
-pub struct ConfigSeedBuilder<'a> {
-    default_namespace: Option<String>,
-    registries: Option<&'a Registries>,
-}
-
-impl<'a> Default for ConfigSeedBuilder<'a> {
-    fn default() -> Self {
-        Self {
-            default_namespace: None,
-            registries: None,
-        }
-    }
-}
-
-impl<'a> ConfigSeedBuilder<'a> {
-    pub fn with_default_namespace(mut self, default_namespace: String) -> Self {
-        self.default_namespace = Some(default_namespace);
-        self
-    }
-
-    pub fn with_registries(mut self, registries: &'a Registries) -> Self {
-        self.registries = Some(registries);
-        self
-    }
-
-    pub fn build(self) -> Result<ConfigSeed<'a>, ConfigSeedBuilderError> {
-        let registries = self
-            .registries
-            .ok_or(ConfigSeedBuilderError::MissingRegistries)?;
-
-        let default_namespace = self
-            .default_namespace
-            .ok_or(ConfigSeedBuilderError::MissingDefaultNamespace)?;
-
-        Ok(ConfigSeed {
-            sites_seed: SiteSourceConfigSeed {
-                resource_seed: ResourceSeed {
-                    registry: registries.reg_sitegen_drivers(),
-                    id_seed: PublicIdentifierSeed {
-                        default_namespace: default_namespace.clone(),
-                    },
-                },
-            },
-            default_namespace,
-            registries,
-        })
-    }
-}
-
-pub struct ConfigSeed<'a> {
+pub struct ConfigDeserializeSeed<'a> {
     pub sites_seed: SiteSourceConfigSeed<'a>,
     pub default_namespace: String,
     pub registries: &'a Registries,
 }
 
-impl<'de> DeserializeSeed<'de> for ConfigSeed<'de> {
+impl<'a> ConfigDeserializeSeed<'a> {
+    pub fn new(registries: &'a Registries, default_namespace: &str) -> Self {
+        Self {
+            sites_seed: SiteSourceConfigSeed {
+                resource_seed: ResourceSeed {
+                    registry: registries.reg_sitegen_drivers(),
+                    id_seed: PublicIdentifierSeed {
+                        default_namespace: default_namespace.to_string(),
+                    },
+                },
+            },
+            default_namespace: default_namespace.to_string(),
+            registries,
+        }
+    }
+}
+
+impl<'de> DeserializeSeed<'de> for ConfigDeserializeSeed<'de> {
     type Value = Config;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -173,7 +133,7 @@ impl<'de> DeserializeSeed<'de> for ConfigSeed<'de> {
 }
 
 struct ConfigVisitor<'a> {
-    pub seed: ConfigSeed<'a>,
+    pub seed: ConfigDeserializeSeed<'a>,
 }
 
 impl<'de> Visitor<'de> for ConfigVisitor<'de> {
@@ -214,7 +174,7 @@ fn validate(args: &Args, config: &Config) -> Result<(), ConfigError> {
     args.validate()
         .map_err(|e| ConfigError::ConfigLoadError(Box::new(e)))?;
 
-    validate_workdir_overrides(args).map_err(|e| ConfigError::ArgsValidationError(e))?;
+    validate_workdir_overrides(args)?;
 
     config
         .validate()
@@ -230,10 +190,10 @@ pub enum ConfigError {
     #[error("Config load failed: {0}")]
     ConfigLoadError(Box<dyn Error>),
     #[error("Arguments validation failed: {0}")]
-    ArgsValidationError(ValidationError),
+    ArgsValidationError(#[from] ValidationError),
 }
 
-pub fn init(seed: ConfigSeed) -> Result<(Config, Args, PathBuf), ConfigError> {
+pub fn init(seed: ConfigDeserializeSeed) -> Result<(Config, Args, PathBuf), ConfigError> {
     let args = Args::parse();
     let path = PathBuf::from(&args.config_file.clone());
     if !path.exists() || !path.is_file() {

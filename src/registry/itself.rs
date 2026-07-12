@@ -9,6 +9,7 @@ pub fn init_itself(registries: &mut super::Registries) -> Result<Namespace, Box<
     Ok(namespace)
 }
 
+#[allow(unused_variables, unused_imports)]
 fn register_sitegen_drivers(
     namespace: &Namespace,
     registry: &mut Registry<SiteGeneratorDriverResource>,

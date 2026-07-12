@@ -18,11 +18,7 @@ fn main() {
     let namespace = init_itself(&mut registries).unwrap();
     println!("Initialized own resources on namespace \"{}\"", namespace);
 
-    let cfg_seed = config::ConfigSeedBuilder::default()
-        .with_default_namespace(namespace.namespace().to_string())
-        .with_registries(&registries)
-        .build()
-        .unwrap();
+    let cfg_seed = config::ConfigDeserializeSeed::new(&registries, namespace.namespace());
 
     let cfg_result = config::init(cfg_seed);
     if let Err(e) = cfg_result {

@@ -1,20 +1,12 @@
 use super::context::{Context, ContextEvaluationError};
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use thiserror::Error;
 
+#[derive(Default)]
 pub struct TemplateEngine {
     tera: tera::Tera,
     filenames: HashMap<String, String>,
-}
-
-impl Default for TemplateEngine {
-    fn default() -> Self {
-        TemplateEngine {
-            tera: tera::Tera::default(),
-            filenames: HashMap::new(),
-        }
-    }
 }
 
 #[derive(Debug, Error)]
@@ -30,7 +22,7 @@ pub enum TemplateError {
 }
 
 impl TemplateEngine {
-    pub fn register(&mut self, run_name: &str, file: &PathBuf) -> Result<(), TemplateError> {
+    pub fn register(&mut self, run_name: &str, file: &Path) -> Result<(), TemplateError> {
         let full_path = file.canonicalize()?;
         let contents = std::fs::read_to_string(full_path)?;
 
@@ -38,7 +30,7 @@ impl TemplateEngine {
         self.filenames.insert(
             run_name.to_string(),
             file.file_name()
-                .ok_or(TemplateError::TemplateNotAFile(file.clone()))?
+                .ok_or(TemplateError::TemplateNotAFile(file.to_path_buf()))?
                 .to_string_lossy()
                 .to_string(),
         );

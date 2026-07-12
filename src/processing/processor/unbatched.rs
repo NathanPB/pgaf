@@ -19,16 +19,14 @@ impl Processor for UnbatchedProcessor {
         rx: &Receiver<Self::Output>,
         templates: &TemplateEngine,
     ) -> Result<(), Box<dyn Error + Send>> {
-        // TODO better error handling
+        // TODO: better error handling
         rx.iter()
-            .map(|ctx| {
+            .inspect(|ctx| {
                 let path = ctx.dir(&self.workdir);
                 if let Err(err) = create_dir_all(&path) {
                     eprintln!("UnbatchedProcessor: Failed to create directory: {}", err);
                 }
-                ctx
-            })
-            .map(|ctx| {
+
                 let filename = match templates.file_name(ctx.run.name.as_str()) {
                     Some(filename) => filename,
                     None => {
@@ -39,7 +37,7 @@ impl Processor for UnbatchedProcessor {
                     }
                 };
 
-                let rendered = templates.render(&ctx).unwrap();
+                let rendered = templates.render(ctx).unwrap();
                 let mut template_path = ctx.dir(&self.workdir);
                 template_path.push(filename);
 
@@ -49,8 +47,6 @@ impl Processor for UnbatchedProcessor {
                         ctx.site.id, ctx.site.lon, ctx.site.lat, err
                     );
                 }
-
-                ctx
             })
             .try_for_each(|ctx| tx.send(ctx))
             .map_err(|err| Box::new(err) as Box<dyn Error + Send>)

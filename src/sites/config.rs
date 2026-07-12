@@ -1,11 +1,11 @@
+#![allow(unused_imports)]
+
 use serde::Deserialize;
 use serde_inline_default::serde_inline_default;
 use std::fmt::Debug;
 use validator::Validate;
 
-#[derive(Deserialize, Clone, Debug)]
-pub struct VoidSiteGeneratorConfig;
-
+#[cfg(feature = "gdal")]
 #[serde_inline_default]
 #[derive(Validate, Deserialize, Clone, Debug)]
 pub struct VectorSiteGeneratorConfig {
@@ -17,6 +17,7 @@ pub struct VectorSiteGeneratorConfig {
     pub site_id_key: String,
 }
 
+#[cfg(feature = "gdal")]
 #[serde_inline_default]
 #[derive(Validate, Deserialize, Clone, Debug)]
 pub struct RasterSiteGeneratorConfig {

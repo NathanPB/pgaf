@@ -21,7 +21,7 @@ pub trait Pipeline: Send + Sync {
     ) -> Result<(), Box<dyn Error + Send>>;
 }
 
-pub fn create_pipeline_from_config<'a, O: PipelineData + 'static>(
+pub fn create_pipeline_from_config<O: PipelineData + 'static>(
     _config: &Config,
     workers: usize,
     processor: impl Processor<Output = O> + 'static,
@@ -32,14 +32,14 @@ pub fn create_pipeline_from_config<'a, O: PipelineData + 'static>(
     };
 
     let pipeline: Pipelines<O> = match workers {
-        1 => Pipelines::SYNC(SyncPipeline::new(processor)),
-        _ => Pipelines::THREADED(ThreadedPipeline::new(processor, worker_count)?),
+        1 => Pipelines::Sync(SyncPipeline::new(processor)),
+        _ => Pipelines::Threaded(ThreadedPipeline::new(processor, worker_count)?),
     };
 
     Ok(pipeline)
 }
 
 pub enum Pipelines<T: PipelineData> {
-    SYNC(SyncPipeline<T>),
-    THREADED(ThreadedPipeline<T>),
+    Sync(SyncPipeline<T>),
+    Threaded(ThreadedPipeline<T>),
 }

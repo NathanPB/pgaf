@@ -234,10 +234,10 @@ mod tests {
 
     #[test]
     fn invalid_namespace() {
-        match Registries::new().claim_namespace("inv@lid") {
-            Ok(_) => panic!("Expected to disallow namespaces with invalid characters"),
-            Err(_) => {}
-        }
+        assert!(
+            Registries::new().claim_namespace("inv@lid").is_err(),
+            "Expected to disallow namespaces with invalid characters"
+        )
     }
 
     #[test]
@@ -246,10 +246,10 @@ mod tests {
         let namespace = registries.claim_namespace("foo").unwrap();
         assert_eq!(namespace.namespace, "foo");
 
-        match registries.claim_namespace("foo") {
-            Ok(_) => panic!("Expected to disallow claiming duplicate namespace"),
-            Err(_) => {}
-        }
+        assert!(
+            registries.claim_namespace("foo").is_err(),
+            "Expected to disallow claiming duplicate namespace"
+        );
     }
 
     #[test]
@@ -269,10 +269,10 @@ mod tests {
             namespace: "foo".to_string(),
         };
         let mut reg: Registry<DummyResource> = Registry::new();
-        match reg.register(&namespace, "inv@lid", DummyResource.into()) {
-            Ok(_) => panic!("Expected to disallow invalid id"),
-            Err(_) => {}
-        }
+        assert!(
+            reg.register(&namespace, "inv@lid", DummyResource).is_err(),
+            "Expected to disallow invalid id"
+        );
     }
 
     #[test]
@@ -282,25 +282,18 @@ mod tests {
         };
         let mut reg: Registry<DummyResource> = Registry::new();
         let id = namespace.id("bar");
-        reg.register(&namespace, id.id.as_str(), DummyResource.into())
+        reg.register(&namespace, id.id.as_str(), DummyResource)
             .unwrap();
 
-        match reg.get(&id) {
-            Some(res) => assert_eq!(
-                res,
-                &DummyResource.into(),
-                "Registered and retrieved resources do not match"
-            ),
-            None => panic!("Expected to find resource"),
-        }
+        assert_eq!(reg.get(&id), Some(&DummyResource));
 
         assert_eq!(
             reg.get(&id),
             reg.get(&PublicIdentifier::new("foo".to_string(), "bar".to_string()))
         );
         assert_eq!(reg.ids(), vec![namespace.id("bar")]);
-        assert_eq!(reg.resources(), vec![&DummyResource.into()]);
-        assert_eq!(reg.entries(), vec![(id, &DummyResource.into())]);
+        assert_eq!(reg.resources(), vec![&DummyResource]);
+        assert_eq!(reg.entries(), vec![(id, &DummyResource)]);
         assert_eq!(reg.len(), 1);
     }
 }

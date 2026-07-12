@@ -48,6 +48,7 @@ impl<'de> DeserializeSeed<'de> for PublicIdentifierSeed {
     /// E.g.
     /// - `foo:bar`     -> Namespace=``foo``, Id=``bar``
     /// - `bar`         -> Namespace=`self.default_namespace`, Id=``bar``
+    ///
     /// For further details on formatting, check [`RE_VALID_NAMESPACE_OR_ID`].
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where

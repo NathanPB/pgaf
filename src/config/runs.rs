@@ -5,7 +5,7 @@ use serde::de::{DeserializeSeed, MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 use validator::{Validate, ValidationError};
 
@@ -29,7 +29,7 @@ pub fn validate_unique_run_names(runs: &Vec<RunConfig>) -> Result<(), Validation
     Ok(())
 }
 
-fn validate_template_file_exists(path: &PathBuf) -> Result<(), ValidationError> {
+fn validate_template_file_exists(path: &Path) -> Result<(), ValidationError> {
     if !path.exists() || path.is_dir() {
         let msg = format!(
             "Template file {} does not exist or is not a file",

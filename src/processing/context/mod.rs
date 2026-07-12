@@ -5,7 +5,7 @@ mod value;
 use crate::config;
 use crate::sites::Site;
 pub use gen::*;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 pub use value::*;
 
 /// Holds the information about the execution of a single run on a specific site with its bound run configurations.
@@ -27,13 +27,13 @@ impl Context {
                 self.site.id.to_string(),
             ))),
             "lng" => Some(ContextValue::Prim(PrimitiveContextValue::Float(
-                self.site.lon.as_f64().into(),
+                self.site.lon.as_f64(),
             ))),
             "lon" => Some(ContextValue::Prim(PrimitiveContextValue::Float(
-                self.site.lon.as_f64().into(),
+                self.site.lon.as_f64(),
             ))),
             "lat" => Some(ContextValue::Prim(PrimitiveContextValue::Float(
-                self.site.lat.as_f64().into(),
+                self.site.lat.as_f64(),
             ))),
             "name" => Some(ContextValue::Prim(PrimitiveContextValue::String(
                 self.run.name.clone(),
@@ -42,11 +42,11 @@ impl Context {
         }
     }
 
-    pub fn dir(&self, base: &PathBuf) -> PathBuf {
-        let mut path = base.clone();
+    pub fn dir(&self, base: &Path) -> PathBuf {
+        let mut path = base.to_path_buf();
         path.push(&self.run.name);
-        path.push(&self.site.lon.ns(4));
-        path.push(&self.site.lat.ew(4));
+        path.push(self.site.lon.ns(4));
+        path.push(self.site.lat.ew(4));
         path
     }
 
