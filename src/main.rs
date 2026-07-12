@@ -6,7 +6,6 @@ mod functions;
 mod processing;
 mod registry;
 mod sites;
-mod utils;
 mod workdir;
 
 use crate::processing::ProcessingBuilder;

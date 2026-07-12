@@ -13,12 +13,11 @@ pub mod itself;
 pub mod resources;
 mod serialize;
 
-use crate::utils::threehashmap::K2HashMap;
 use error::*;
 pub use identifier::{PublicIdentifier, PublicIdentifierSeed};
 use resources::*;
 pub use serialize::ResourceSeed;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;
 
 /// Validates if the given string is a valid name/id for a [`Namespace`] or [`Identifier`].
@@ -76,14 +75,14 @@ pub trait Resource: Sized + Clone {}
 
 /// Stores [`Resource`]s, identified by [`Identifier`], and provides basic operations on them.
 pub struct Registry<T: Resource> {
-    map: K2HashMap<String, String, T>,
+    map: HashMap<(String, String), T>,
 }
 
 impl<T: Resource> Registry<T> {
     /// Creates a new blank [`Registry`].
     fn new() -> Self {
         Self {
-            map: K2HashMap::new(),
+            map: HashMap::new(),
         }
     }
 
@@ -110,8 +109,7 @@ impl<T: Resource> Registry<T> {
         }
 
         self.map.insert(
-            namespace.namespace.clone(),
-            id.to_string().clone(),
+            (namespace.namespace.clone(), id.to_string().clone()),
             resource,
         );
         Ok(self)
@@ -120,13 +118,15 @@ impl<T: Resource> Registry<T> {
     /// Checks if there is something registered under the given namespace and id.
     #[allow(dead_code)]
     pub fn is_registered(&self, identifier: &PublicIdentifier) -> bool {
-        self.map.contains_key(&identifier.namespace, &identifier.id)
+        self.map
+            .contains_key(&(identifier.namespace.to_string(), identifier.id.to_string()))
     }
 
     /// Returns the [`Resource`] registered under the given namespace and id, if any.
     #[allow(dead_code)]
     pub fn get(&self, identifier: &PublicIdentifier) -> Option<&T> {
-        self.map.get(&identifier.namespace, &identifier.id)
+        self.map
+            .get(&(identifier.namespace.to_string(), identifier.id.to_string()))
     }
 
     /// Returns the [`Identifier`] of all registered [`Resource`]s.
@@ -149,7 +149,7 @@ impl<T: Resource> Registry<T> {
     pub fn entries(&self) -> Vec<(PublicIdentifier, &T)> {
         self.map
             .iter()
-            .map(|(k1, k2, v)| (PublicIdentifier::new(k1.clone(), k2.clone()), v))
+            .map(|((k1, k2), v)| (PublicIdentifier::new(k1.clone(), k2.clone()), v))
             .collect()
     }
 
