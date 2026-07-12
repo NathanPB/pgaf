@@ -81,9 +81,11 @@ fn feature_to_site(feature: &Feature, site_id_key: &str) -> Option<Site> {
             return None;
         }
 
+        let field_idx = feature.field_index(site_id_key).ok()?;
+
         // TODO better error handling. At least expose something in the interface to let consumers know if something went wrong.
         let id_result = feature
-            .field(1)
+            .field(field_idx)
             .and_then(|id| {
                 id.ok_or(GdalError::NullPointer {
                     method_name: "dummy",
