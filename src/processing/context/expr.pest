@@ -8,7 +8,8 @@ int_val   = @{ "-"? ~ ASCII_DIGIT+ }
 string_template = ${ "'" ~ template_content* ~ "'" }
 template_content = _{ interpolation | literal_text }
 interpolation = !{ "${" ~ expr ~ "}" }
-literal_text = @{ (!"'" ~ !"${" ~ ANY)+ }
+escape_char  = @{ "\\" ~ ("\"" | "'" | "\\") }
+literal_text = @{ (escape_char | (!"'" ~ !"${" ~ ANY))+ }
 
 ident = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 

@@ -40,7 +40,27 @@ impl From<pest::iterators::Pair<'_, Rule>> for Expr {
 
                 Expr::StringTemplate(pieces)
             }
-            Rule::literal_text => Expr::String(pair.as_str().to_string()),
+            Rule::literal_text => {
+                let mut result = String::with_capacity(pair.as_str().len());
+                let mut chars = pair.as_str().chars();
+                while let Some(c) = chars.next() {
+                    if c == '\\' {
+                        match chars.next() {
+                            Some('"') => result.push('"'),
+                            Some('\'') => result.push('\''),
+                            Some('\\') => result.push('\\'),
+                            Some(other) => {
+                                result.push('\\');
+                                result.push(other);
+                            }
+                            None => result.push('\\'),
+                        }
+                    } else {
+                        result.push(c);
+                    }
+                }
+                Expr::String(result)
+            }
             Rule::interpolation => pair.into_inner().next().unwrap().into(),
             Rule::function_call => {
                 let mut inner_rules = pair.into_inner();
@@ -76,6 +96,10 @@ impl<'a> TryFrom<&'a str> for Expr {
             match first_pair.as_rule() {
                 Rule::eval_block => Ok(first_pair.into_inner().next().unwrap().into()),
                 _ => {
+                    if input.starts_with("$={") {
+                        EvalParser::parse(Rule::eval_block, input)?;
+                    }
+
                     let mut pieces: Vec<Expr> = vec![first_pair.into()];
                     pieces.extend(inner_rules.map(Into::into));
 
@@ -247,25 +271,49 @@ mod tests {
     #[test]
     fn test_syntax_errors() {
         // Unclosed explicit evaluation brackets
-        // Since the parser can't parse the entrypoint, it fallsback as a String literal.
-        let input = String::from("$={sum(a: 5)");
-        let result: Result<Expr, _> = input.as_str().try_into();
-        assert_eq!(result, Ok(Expr::String(input)));
+        let result: Result<Expr, _> = "$={sum(a: 5)".try_into();
+        assert!(result.is_err());
 
         // Unclosed function arguments parenthesis
-        // Since the parser can't parse the entrypoint, it fallsback as a String literal.
-        let input = String::from("$={sum(a: 5}");
-        let result: Result<Expr, _> = input.as_str().try_into();
-        assert_eq!(result, Ok(Expr::String(input)));
+        let result: Result<Expr, _> = "$={sum(a: 5}".try_into();
+        assert!(result.is_err());
 
         // Invalid identifier format (cannot start with a number)
-        // Since the parser can't parse the entrypoint, it fallsback as a String literal.
-        let input = String::from("$={1st_val}");
-        let result: Result<Expr, _> = input.as_str().try_into();
-        assert_eq!(result, Ok(Expr::String(input)));
+        let result: Result<Expr, _> = "$={1st_val}".try_into();
+        assert!(result.is_err());
 
         // Unclosed single-quoted string template inside evaluation
         let result: Result<Expr, _> = "$={concat(str: 'hello)}".try_into();
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_doublequote_strings_fail() {
+        let result: Result<Expr, _> = "$={\"hello_world\"}".try_into();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_double_quoted_function_arg_fails() {
+        let result: Result<Expr, _> = "$={greet(name: \"Nathan\")}".try_into();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_escaped_double_quote_in_string() {
+        let expr: Expr = "$={'say \\\"hello\\\"'}".try_into().unwrap();
+        assert_eq!(expr, Expr::String("say \"hello\"".to_string()));
+    }
+
+    #[test]
+    fn test_escaped_single_quote_in_string() {
+        let expr: Expr = "$={'it\\'s a test'}".try_into().unwrap();
+        assert_eq!(expr, Expr::String("it's a test".to_string()));
+    }
+
+    #[test]
+    fn test_escaped_backslash_in_string() {
+        let expr: Expr = "$={'path\\\\to\\\\file'}".try_into().unwrap();
+        assert_eq!(expr, Expr::String("path\\to\\file".to_string()));
     }
 }
