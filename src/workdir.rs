@@ -12,7 +12,7 @@ pub fn make_workdir(
     let new_workdir = match workdir {
         Some(workdir) => create_dir_all(workdir).map(|_| workdir.to_path_buf())?,
         None => tempfile::Builder::new()
-            .prefix("pythia-workdir")
+            .prefix("pgaf-workdir")
             .keep(keep)
             .tempdir()?
             .into_path(),
