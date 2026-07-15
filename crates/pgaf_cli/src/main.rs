@@ -1,10 +1,7 @@
 #![feature(mpmc_channel)]
 
 mod config;
-mod functions;
 mod processing;
-mod sites;
-mod stdlib;
 mod workdir;
 
 use crate::processing::ProcessingBuilder;
@@ -17,7 +14,7 @@ fn main() {
         .claim_namespace("std")
         .expect("Failed to claim 'std' namespace.");
 
-    stdlib::init(&namespace, &mut registries).expect("Failed to initialize stdlib.");
+    pgaf_std::init(&namespace, &mut registries).expect("Failed to initialize stdlib.");
     println!("Initialized own resources on namespace \"{}\"", namespace);
 
     let cfg_seed = config::ConfigDeserializeSeed::new(&registries, &namespace);

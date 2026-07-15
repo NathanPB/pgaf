@@ -1,9 +1,15 @@
+use gdal::Dataset;
 use gdal::errors::GdalError;
 use gdal::vector::{Feature, FeatureIterator, Layer, LayerAccess};
-use gdal::Dataset;
 use pgaf_sdk::data::GeoDeg;
 use pgaf_sdk::site::Site;
+use pgaf_sdk::site::SiteGeneratorDriver;
+use serde::Deserialize;
+use serde_inline_default::serde_inline_default;
 use std::rc::Rc;
+use std::sync::Arc;
+use std::sync::LazyLock;
+use validator::Validate;
 
 /// Implementation of SiteGenerator that allows streaming from a GDAL vector dataset.
 /// Example usage with https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/1PEEY0:
@@ -22,6 +28,26 @@ pub struct VectorSiteGenerator {
     layer: Option<Layer<'static>>,
     feat_iter: Box<Option<FeatureIterator<'static>>>,
 }
+
+#[serde_inline_default]
+#[derive(Validate, Deserialize, Clone, Debug)]
+pub struct VectorSiteGeneratorConfig {
+    #[validate(length(min = 1, message = "Vector file path cannot be empty"))]
+    pub file: String,
+
+    #[serde_inline_default("ID".to_string())]
+    #[validate(length(min = 1, message = "Site ID key cannot be empty"))]
+    pub site_id_key: String,
+}
+
+pub const VECTOR_DRIVER: LazyLock<
+    SiteGeneratorDriver<VectorSiteGenerator, VectorSiteGeneratorConfig>,
+> = LazyLock::new(|| SiteGeneratorDriver {
+    create: Arc::new(|c: VectorSiteGeneratorConfig| {
+        VectorSiteGenerator::new(c.file.as_str(), c.site_id_key)
+    }),
+    config_deserializer: Arc::new(serde_json::from_value),
+});
 
 impl VectorSiteGenerator {
     /// Constructs a new VectorSiteGenerator from a GDAL vector dataset.
@@ -115,11 +141,21 @@ fn feature_to_site(feature: &Feature, site_id_key: &str) -> Option<Site> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::Path;
 
     #[test]
     fn test_vector_site_generator() {
-        let gen =
-            VectorSiteGenerator::new("testdata/DSSAT-Soils.shp.zip", "CELL5M".to_string()).unwrap();
+        let testfile = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .join("testdata")
+            .join("DSSAT-Soils.shp.zip")
+            .into_string()
+            .unwrap();
+
+        let generator = VectorSiteGenerator::new(&testfile, "CELL5M".to_string()).unwrap();
 
         let expected = vec![
             Site {
@@ -232,7 +268,7 @@ mod tests {
         let mut max_lat: f32 = -90.0;
 
         let mut i = 0;
-        for site in gen {
+        for site in generator {
             if i < len {
                 assert_eq!(site, expected[i]);
             }

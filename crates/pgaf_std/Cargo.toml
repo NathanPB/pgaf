@@ -1,0 +1,16 @@
+[package]
+name = "pgaf_std"
+version = "0.1.0"
+edition = "2024"
+
+[features]
+default = ["gdal"]
+gdal = ["dep:gdal"]
+
+[dependencies]
+pgaf_sdk = { path = "../pgaf_sdk" }
+gdal = { git = "https://github.com/georust/gdal.git", optional = true }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde-inline-default = "1"
+validator = { version = "0.20.0", features = ["derive"] }

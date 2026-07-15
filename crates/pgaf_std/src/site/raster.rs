@@ -2,8 +2,13 @@ use gdal::raster::{Buffer, GdalDataType};
 use gdal::{Dataset, GeoTransformEx};
 use pgaf_sdk::data::GeoDeg;
 use pgaf_sdk::site::Site;
+use pgaf_sdk::site::SiteGeneratorDriver;
+use serde::Deserialize;
+use serde_inline_default::serde_inline_default;
 use std::fmt;
 use std::rc::Rc;
+use std::sync::{Arc, LazyLock};
+use validator::Validate;
 
 /// Represents an error meaning that the desired data type of the raster band is not supported.
 #[derive(Debug, Clone)]
@@ -70,6 +75,24 @@ pub struct RasterSiteGenerator {
     px_idx: usize,
 }
 
+#[serde_inline_default]
+#[derive(Validate, Deserialize, Clone, Debug)]
+pub struct RasterSiteGeneratorConfig {
+    pub file: String,
+
+    #[serde_inline_default(0)]
+    pub layer_index: usize,
+}
+
+pub const RASTER_DRIVER: LazyLock<
+    SiteGeneratorDriver<RasterSiteGenerator, RasterSiteGeneratorConfig>,
+> = LazyLock::new(|| SiteGeneratorDriver {
+    create: Arc::new(|c: RasterSiteGeneratorConfig| {
+        RasterSiteGenerator::new(c.file.as_str(), c.layer_index)
+    }),
+    config_deserializer: Arc::new(serde_json::from_value),
+});
+
 impl RasterSiteGenerator {
     /// Constructs a new RasterSiteGenerator.
     /// Parameter "path" is the GDAL-valid path to the raster dataset.
@@ -92,7 +115,7 @@ impl RasterSiteGenerator {
         let px_size_x = geo_transform[1];
         let px_size_y = -geo_transform[5];
 
-        let mut gen = Self {
+        let mut generator = Self {
             ds,
             no_data_value,
             band_index: band_index + 1,
@@ -110,8 +133,8 @@ impl RasterSiteGenerator {
             px_idx: 0,
         };
 
-        gen.load_next_block();
-        Ok(gen)
+        generator.load_next_block();
+        Ok(generator)
     }
 
     fn load_next_block(&mut self) -> bool {
@@ -148,27 +171,27 @@ impl Iterator for RasterSiteGenerator {
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if let Some(ref buffer) = self.buffer {
-                if self.px_idx < self.buffer_x_size * self.buffer_y_size {
-                    let x_offset = self.px_idx % self.buffer_x_size;
-                    let y_offset = self.px_idx / self.buffer_x_size;
-                    let value = buffer.data()[self.px_idx];
-                    self.px_idx += 1;
-                    if value == self.no_data_value {
-                        continue;
-                    }
-
-                    let x = (self.curr_block_x * self.block_x_size + x_offset) as f64;
-                    let y = (self.curr_block_y * self.block_y_size + y_offset) as f64;
-                    let gt = self.ds.geo_transform().unwrap();
-                    let (lon, lat) = gt.apply(x, y);
-
-                    return Some(Site {
-                        id: value,
-                        lon: GeoDeg::from(lon + (self.px_size_x / 2.0)),
-                        lat: GeoDeg::from(lat - (self.px_size_y / 2.0)),
-                    });
+            if let Some(ref buffer) = self.buffer
+                && self.px_idx < self.buffer_x_size * self.buffer_y_size
+            {
+                let x_offset = self.px_idx % self.buffer_x_size;
+                let y_offset = self.px_idx / self.buffer_x_size;
+                let value = buffer.data()[self.px_idx];
+                self.px_idx += 1;
+                if value == self.no_data_value {
+                    continue;
                 }
+
+                let x = (self.curr_block_x * self.block_x_size + x_offset) as f64;
+                let y = (self.curr_block_y * self.block_y_size + y_offset) as f64;
+                let gt = self.ds.geo_transform().unwrap();
+                let (lon, lat) = gt.apply(x, y);
+
+                return Some(Site {
+                    id: value,
+                    lon: GeoDeg::from(lon + (self.px_size_x / 2.0)),
+                    lat: GeoDeg::from(lat - (self.px_size_y / 2.0)),
+                });
             }
 
             self.curr_block_x += 1;
@@ -187,10 +210,23 @@ impl Iterator for RasterSiteGenerator {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::Path;
 
     #[test]
     fn test_raster_site_generator() {
-        let gen = RasterSiteGenerator::new("testdata/DSSAT-Soils.tif", 0).unwrap();
+        let testfile = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .join("testdata")
+            .join("DSSAT-Soils.tif")
+            .into_string()
+            .unwrap();
+
+        dbg!(&testfile);
+
+        let generator = RasterSiteGenerator::new(&testfile, 0).unwrap();
 
         let expected = vec![
             Site {
@@ -303,7 +339,7 @@ mod tests {
         let mut max_lat: f32 = -90.0;
 
         let mut i = 0;
-        for site in gen {
+        for site in generator {
             if i < len {
                 assert_eq!(site, expected[i]);
             }

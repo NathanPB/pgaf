@@ -1,25 +1,24 @@
-use std::error::Error;
-
 use pgaf_sdk::registry::{
-    FunctionDriverResource, Namespace, Registries, Registry, SiteGeneratorDriverResource,
+    FunctionDriverResource, Namespace, Registries, Registry, RegistryError,
+    SiteGeneratorDriverResource,
 };
 
-pub fn init(namespace: &Namespace, registries: &mut Registries) -> Result<(), Box<dyn Error>> {
+mod function;
+mod site;
+
+pub fn init(namespace: &Namespace, registries: &mut Registries) -> Result<(), RegistryError> {
     register_sitegen_drivers(namespace, registries.regmut_sitegen_drivers())?;
     register_function_drivers(namespace, registries.regmut_function_drivers())?;
     Ok(())
 }
 
-#[allow(unused_variables, unused_imports)]
 fn register_sitegen_drivers(
     namespace: &Namespace,
     registry: &mut Registry<SiteGeneratorDriverResource>,
-) -> Result<(), Box<dyn Error>> {
-    use crate::sites::drivers::*;
-
+) -> Result<(), RegistryError> {
     #[cfg(feature = "gdal")]
     {
-        let driver = DRIVER_VECTOR;
+        let driver = crate::site::vector::VECTOR_DRIVER;
         registry.register(
             namespace,
             "vector",
@@ -29,7 +28,7 @@ fn register_sitegen_drivers(
 
     #[cfg(feature = "gdal")]
     {
-        let driver = DRIVER_RASTER;
+        let driver = crate::site::raster::RASTER_DRIVER;
         registry.register(
             namespace,
             "raster",
@@ -43,13 +42,13 @@ fn register_sitegen_drivers(
 fn register_function_drivers(
     namespace: &Namespace,
     registry: &mut Registry<FunctionDriverResource>,
-) -> Result<(), Box<dyn Error>> {
-    use crate::functions::*;
+) -> Result<(), RegistryError> {
+    use crate::function::*;
 
     registry.register(
         namespace,
         "greet",
-        FunctionDriverResource(GREET_DRIVER.clone()),
+        FunctionDriverResource(greet::GREET_DRIVER.clone()),
     )?;
 
     Ok(())
