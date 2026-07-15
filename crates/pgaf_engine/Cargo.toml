@@ -2,6 +2,8 @@
 name = "pgaf_engine"
 version = "0.1.0"
 edition = "2024"
+authors.workspace = true
+license.workspace = true
 
 [dependencies]
 pgaf_sdk = { path = "../pgaf_sdk" }

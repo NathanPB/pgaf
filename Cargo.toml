@@ -6,3 +6,7 @@ members = [
   "crates/pgaf_sdk",
   "crates/pgaf_std",
 ]
+
+[workspace.package]
+authors = ["Nathan P. Bombana <nathan.pbombana@gmail.com>"]
+license = "Apache-2.0"
