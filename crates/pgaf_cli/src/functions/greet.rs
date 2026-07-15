@@ -1,8 +1,8 @@
 use serde::Deserialize;
 use std::sync::LazyLock;
 
-use crate::functions::{Driver, Function, FunctionDriver, FunctionRuntimeError};
-use crate::processing::context::{Context, PrimitiveContextValue};
+use pgaf_sdk::context::{Context, PrimitiveContextValue};
+use pgaf_sdk::function::{Driver, Function, FunctionDriver, FunctionRuntimeError};
 
 pub struct Greet;
 
@@ -30,13 +30,9 @@ pub static GREET_DRIVER: LazyLock<Driver> =
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
-
-    use crate::{
-        config::runs::RunConfig, data::GeoDeg, processing::context::ContextValue, sites::Site,
-    };
-
     use super::*;
+    use pgaf_sdk::{config::RunConfig, context::ContextValue, data::GeoDeg, site::Site};
+    use std::path::PathBuf;
 
     #[test]
     fn greet() {

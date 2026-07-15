@@ -7,6 +7,7 @@ edition = "2021"
 gdal = ["dep:gdal"]
 
 [dependencies]
+pgaf_sdk = { path = "../pgaf_sdk" }
 gdal = { version = "0.19", optional = true }
 clap = { version = "4.5.29", features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }

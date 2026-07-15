@@ -1,34 +1,11 @@
 use std::collections::HashMap;
 
-use super::Context;
-use crate::functions;
 use crate::processing::context::expr::Expr;
 use crate::processing::PipelineData;
-use crate::registry::{PublicIdentifier, PublicIdentifierParseError, Registries};
+use pgaf_sdk::context::{Context, ContextEvaluationError, ContextValue, PrimitiveContextValue};
+use pgaf_sdk::registry::{PublicIdentifier, Registries};
 use serde::de::DeserializeSeed;
-use serde::{Deserialize, Deserializer, Serialize};
-
-#[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
-#[serde(untagged)]
-pub enum PrimitiveContextValue {
-    Bool(bool),
-    Int(i64),
-    Float(f64),
-    String(String),
-    Null,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum ContextValue {
-    StringTemplate(Vec<ContextValue>),
-    Prim(PrimitiveContextValue),
-    Function {
-        id: PublicIdentifier,
-        function: functions::Driver,
-        args: functions::FunctionArgs,
-    },
-    Ident(String),
-}
+use serde::{Deserialize, Deserializer};
 
 pub struct ContextValueDeserializeSeed<'a> {
     pub default_namespace: String,
@@ -109,68 +86,15 @@ fn expr_to_context_value(
     })
 }
 
-#[derive(thiserror::Error, Debug, PartialEq)]
-pub enum ContextEvaluationError {
-    #[error("Identifier '{0}' could not be resolved.")]
-    IdentifierNotFound(String),
-    #[error("Function with identifier '{0}' could not be resolved.")]
-    FunctionNotFound(PublicIdentifier),
-    #[error("Failed to parse identifier '{0}': {1}")]
-    IdentifierParse(String, PublicIdentifierParseError),
-    #[error("Failed to invoke function '{0}': {1}")]
-    FunctionInvoke(PublicIdentifier, functions::FunctionRuntimeError),
-}
-
-impl PrimitiveContextValue {
-    pub fn as_string(&self) -> String {
-        match self {
-            PrimitiveContextValue::Bool(b) => b.to_string(),
-            PrimitiveContextValue::Int(i) => i.to_string(),
-            PrimitiveContextValue::Float(f) => f.to_string(),
-            PrimitiveContextValue::String(s) => s.clone(),
-            PrimitiveContextValue::Null => "null".to_string(),
-        }
-    }
-}
-
-impl ContextValue {
-    pub fn to_prim(&self, ctx: &Context) -> Result<PrimitiveContextValue, ContextEvaluationError> {
-        match self {
-            ContextValue::Prim(p) => Ok(p.clone()),
-            ContextValue::Ident(i) => ctx
-                .get(i)
-                .ok_or(ContextEvaluationError::IdentifierNotFound(i.clone()))
-                .and_then(|v| v.to_prim(ctx)),
-            ContextValue::StringTemplate(s) => {
-                let evaluated: Result<Vec<_>, _> = s
-                    .iter()
-                    .map(|it| it.to_prim(ctx).map(|prim| prim.as_string()))
-                    .collect();
-
-                Ok(PrimitiveContextValue::String(evaluated?.concat()))
-            }
-            ContextValue::Function { id, function, args } => function
-                .invoke(args, ctx)
-                .map_err(|e| ContextEvaluationError::FunctionInvoke(id.clone(), e)),
-        }
-    }
-}
-
-impl From<PrimitiveContextValue> for ContextValue {
-    fn from(value: PrimitiveContextValue) -> Self {
-        Self::Prim(value)
-    }
-}
-
 impl PipelineData for Context {}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::data::GeoDeg;
-    use crate::functions::{Driver, Function, FunctionDriver};
-    use crate::registry::resources::FunctionDriverResource;
-    use crate::sites::Site;
+    use pgaf_sdk::data::GeoDeg;
+    use pgaf_sdk::function::{Driver, Function, FunctionDriver, FunctionRuntimeError};
+    use pgaf_sdk::registry::FunctionDriverResource;
+    use pgaf_sdk::site::Site;
     use std::error::Error;
     use std::path::PathBuf;
     use std::sync::LazyLock;
@@ -186,7 +110,7 @@ mod tests {
         fn invoke(
             args: FnUppercaseArgs,
             _: &Context,
-        ) -> Result<PrimitiveContextValue, functions::FunctionRuntimeError> {
+        ) -> Result<PrimitiveContextValue, FunctionRuntimeError> {
             Ok(PrimitiveContextValue::String(args.str.to_uppercase()))
         }
     }
@@ -283,7 +207,7 @@ mod tests {
             ContextValue::StringTemplate(vec![
                 ContextValue::Prim(PrimitiveContextValue::String("Hello ".to_string())),
                 ContextValue::Function {
-                    id: PublicIdentifier::new("std".to_string(), "uppercase".to_string()),
+                    id: PublicIdentifier::build("std", "uppercase").unwrap(),
                     function: FN_UPPERCASE.clone(),
                     args: [(
                         "str".to_string(),
@@ -310,7 +234,7 @@ mod tests {
                 lon: GeoDeg::from(15.222),
                 lat: GeoDeg::from(-15.23133),
             },
-            run: crate::config::runs::RunConfig {
+            run: pgaf_sdk::config::RunConfig {
                 name: String::from("r1"),
                 template: PathBuf::from("dummy"),
                 extra: [

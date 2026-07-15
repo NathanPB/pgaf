@@ -1,6 +1,8 @@
-use crate::config::{Args, Config};
+use crate::config::Args;
 use crate::processing::template::TemplateEngine;
-use context::{Context, ContextGenerator};
+use context::ContextGenerator;
+use pgaf_sdk::config::Config;
+use pgaf_sdk::context::Context;
 use pipeline::{create_pipeline_from_config, Pipeline, Pipelines};
 use processor::unbatched::UnbatchedProcessor;
 use std::path::PathBuf;

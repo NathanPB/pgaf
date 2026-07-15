@@ -1,11 +1,11 @@
 mod sync;
 mod threaded;
 
-use super::super::processing::context::Context;
 use super::processor::Processor;
 use super::template::TemplateEngine;
 use super::PipelineData;
-use crate::config::Config;
+use pgaf_sdk::config::Config;
+use pgaf_sdk::context::Context;
 use std::error::Error;
 use std::sync::mpmc::{Receiver, Sender};
 pub use sync::*;

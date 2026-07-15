@@ -6,13 +6,11 @@ pub struct GeoDeg(f32);
 
 impl GeoDeg {
     /// Returns the value of the GeoDeg as f64.
-    #[allow(dead_code)] // This is part of the public API, so it's not dead code.
     pub fn as_f64(self) -> f64 {
         self.0 as f64
     }
 
     /// Returns the value of the GeoDeg as f32.
-    #[allow(dead_code)] // This is part of the public API, so it's not dead code.
     pub fn as_f32(self) -> f32 {
         self.0
     }
@@ -34,6 +32,8 @@ impl GeoDeg {
     /// # Example
     ///
     /// ```
+    /// use pgaf_sdk::data::GeoDeg;
+    ///
     /// let lat = GeoDeg::from(-12.3456);
     /// assert_eq!(lat.ns(4), "12_3456S");
     /// ```
@@ -64,6 +64,8 @@ impl GeoDeg {
     /// # Example
     ///
     /// ```
+    /// use pgaf_sdk::data::GeoDeg;
+    ///
     /// let lng = GeoDeg::from(78.9101);
     /// assert_eq!(lng.ew(3), "78_910E");
     /// ```

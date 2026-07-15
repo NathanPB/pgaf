@@ -1,23 +1,26 @@
 #![feature(mpmc_channel)]
 
 mod config;
-mod data;
 mod functions;
 mod processing;
-mod registry;
 mod sites;
+mod stdlib;
 mod workdir;
 
 use crate::processing::ProcessingBuilder;
 use crate::workdir::make_workdir;
-use registry::{itself::init_itself, Registries};
+use pgaf_sdk::registry;
 
 fn main() {
-    let mut registries = Registries::new();
-    let namespace = init_itself(&mut registries).unwrap();
+    let mut registries = registry::Registries::new();
+    let namespace = registries
+        .claim_namespace("std")
+        .expect("Failed to claim 'std' namespace.");
+
+    stdlib::init(&namespace, &mut registries).expect("Failed to initialize stdlib.");
     println!("Initialized own resources on namespace \"{}\"", namespace);
 
-    let cfg_seed = config::ConfigDeserializeSeed::new(&registries, namespace.namespace());
+    let cfg_seed = config::ConfigDeserializeSeed::new(&registries, &namespace);
 
     let cfg_result = config::init(cfg_seed);
     if let Err(e) = cfg_result {

@@ -1,6 +1,6 @@
 use super::{PublicIdentifier, PublicIdentifierSeed, Registry, Resource};
-use serde::de::DeserializeSeed;
 use serde::Deserializer;
+use serde::de::DeserializeSeed;
 
 pub struct DeserializedResource<T: Resource> {
     pub resource: T,

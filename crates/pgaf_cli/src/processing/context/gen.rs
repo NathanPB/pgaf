@@ -1,6 +1,6 @@
-use crate::config;
-use crate::processing::context::Context;
-use crate::sites::{Site, SiteGenerator};
+use pgaf_sdk::config::RunConfig;
+use pgaf_sdk::context::Context;
+use pgaf_sdk::site::{Site, SiteGenerator};
 
 /// Given a site source configuration, ContextGenerator will generate a sequence of Contexts to be processed.
 ///
@@ -13,7 +13,7 @@ pub struct ContextGenerator {
     curr_site: Option<Site>,
     site_sample_size: Option<usize>,
     current_site_count: usize,
-    runs: Vec<config::runs::RunConfig>,
+    runs: Vec<RunConfig>,
     current_run: usize,
 }
 
@@ -21,7 +21,7 @@ impl ContextGenerator {
     /// Creates a new ContextGenerator from a SitesSource configuration and a vector of RunConfig.
     pub fn new(
         site_generator: Box<dyn SiteGenerator>,
-        runs: Vec<config::runs::RunConfig>,
+        runs: Vec<RunConfig>,
         site_sample_size: Option<usize>,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         Ok(ContextGenerator {
@@ -68,9 +68,7 @@ impl Iterator for ContextGenerator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config;
-    use crate::data::GeoDeg;
-    use crate::sites::SiteGenerator;
+    use pgaf_sdk::data::GeoDeg;
     use std::collections::HashMap;
     use std::path::PathBuf;
 
@@ -83,12 +81,12 @@ mod tests {
         }));
 
         let runs = vec![
-            config::runs::RunConfig {
+            RunConfig {
                 name: String::from("r1"),
                 extra: HashMap::new(),
                 template: PathBuf::from("dummy"),
             },
-            config::runs::RunConfig {
+            RunConfig {
                 name: String::from("r2"),
                 extra: HashMap::new(),
                 template: PathBuf::from("dummy"),
@@ -121,7 +119,7 @@ mod tests {
             lat: GeoDeg::from(0.0),
         }));
 
-        let runs = vec![config::runs::RunConfig {
+        let runs = vec![RunConfig {
             name: String::from("r1"),
             extra: HashMap::new(),
             template: PathBuf::from("dummy"),

@@ -1,7 +1,7 @@
-use super::super::Site;
-use crate::data::GeoDeg;
 use gdal::raster::{Buffer, GdalDataType};
 use gdal::{Dataset, GeoTransformEx};
+use pgaf_sdk::data::GeoDeg;
+use pgaf_sdk::site::Site;
 use std::fmt;
 use std::rc::Rc;
 

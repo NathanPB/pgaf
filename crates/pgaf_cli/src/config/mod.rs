@@ -1,17 +1,15 @@
-pub mod runs;
-pub mod sites;
+mod deserialize;
 
-use crate::config::sites::{SiteSourceConfig, SiteSourceConfigSeed};
-use crate::registry::{PublicIdentifierSeed, Registries, ResourceSeed};
+use std::{
+    borrow::Cow,
+    path::{Path, PathBuf},
+};
+
+pub use deserialize::ConfigDeserializeSeed;
+
 use clap::Parser;
-use runs::*;
-use serde::de::{DeserializeSeed, MapAccess, Visitor};
-use serde_inline_default::serde_inline_default;
-use std::borrow::Cow;
-use std::error::Error;
-use std::fmt;
-use std::path::{Path, PathBuf};
-use thiserror::Error;
+use pgaf_sdk::config::Config;
+use serde::de::DeserializeSeed;
 use validator::{Validate, ValidationError};
 
 static ERRCODE_WORKDIR_NOT_DIR: &str = "ERRCODE_WORKDIR_NOT_DIR";
@@ -36,7 +34,10 @@ fn validate_workdir_overrides(args: &Args) -> Result<(), ValidationError> {
             match path.read_dir() {
                 Ok(entries) => {
                     if entries.count() > 0 {
-                        let msg = format!("Working directory {} is not empty. Specify --clear-workdir to FORCEFULLY OVERWRITE it.", path.display());
+                        let msg = format!(
+                            "Working directory {} is not empty. Specify --clear-workdir to FORCEFULLY OVERWRITE it.",
+                            path.display()
+                        );
                         return Err(ValidationError::new(ERRCODE_WORKDIR_NOT_EMPTY)
                             .with_message(Cow::from(msg)));
                     }
@@ -52,6 +53,16 @@ fn validate_workdir_overrides(args: &Args) -> Result<(), ValidationError> {
         }
     }
     Ok(())
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum ConfigError {
+    #[error("Config file not found at path {0}")]
+    ConfigFileNotFound(PathBuf),
+    #[error("Config load failed: {0}")]
+    ConfigLoadError(Box<dyn std::error::Error>),
+    #[error("Arguments validation failed: {0}")]
+    ArgsValidationError(#[from] ValidationError),
 }
 
 #[derive(Validate, Parser, Debug)]
@@ -87,89 +98,6 @@ pub struct Args {
     pub clear_workdir: bool,
 }
 
-#[serde_inline_default]
-#[derive(Validate, Clone)]
-pub struct Config {
-    pub sites: SiteSourceConfig,
-
-    #[validate(length(min = 1, message = "At least one run is required"))]
-    #[validate(nested)]
-    #[validate(custom(function = "validate_unique_run_names"))]
-    pub runs: Vec<RunConfig>,
-}
-
-pub struct ConfigDeserializeSeed<'a> {
-    pub sites_seed: SiteSourceConfigSeed<'a>,
-    pub default_namespace: String,
-    pub registries: &'a Registries,
-}
-
-impl<'a> ConfigDeserializeSeed<'a> {
-    pub fn new(registries: &'a Registries, default_namespace: &str) -> Self {
-        Self {
-            sites_seed: SiteSourceConfigSeed {
-                resource_seed: ResourceSeed {
-                    registry: registries.reg_sitegen_drivers(),
-                    id_seed: PublicIdentifierSeed {
-                        default_namespace: default_namespace.to_string(),
-                    },
-                },
-            },
-            default_namespace: default_namespace.to_string(),
-            registries,
-        }
-    }
-}
-
-impl<'de> DeserializeSeed<'de> for ConfigDeserializeSeed<'de> {
-    type Value = Config;
-
-    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        deserializer.deserialize_map(ConfigVisitor { seed: self })
-    }
-}
-
-struct ConfigVisitor<'a> {
-    pub seed: ConfigDeserializeSeed<'a>,
-}
-
-impl<'de> Visitor<'de> for ConfigVisitor<'de> {
-    type Value = Config;
-
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("a Config struct")
-    }
-
-    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-    where
-        A: MapAccess<'de>,
-    {
-        let mut sites = None;
-        let mut runs = None;
-
-        while let Some(key) = map.next_key::<String>()? {
-            match key.as_str() {
-                "sites" => sites = Some(map.next_value_seed(self.seed.sites_seed.clone())?),
-                "runs" => {
-                    runs = Some(map.next_value_seed(RunConfigVecSeed {
-                        default_namespace: self.seed.default_namespace.clone(),
-                        registries: self.seed.registries,
-                    })?)
-                }
-                _ => return Err(serde::de::Error::unknown_field(&key, &["sites"])),
-            }
-        }
-
-        let sites = sites.ok_or_else(|| serde::de::Error::missing_field("sites"))?;
-        let runs = runs.ok_or_else(|| serde::de::Error::missing_field("runs"))?;
-
-        Ok(Config { sites, runs })
-    }
-}
-
 fn validate(args: &Args, config: &Config) -> Result<(), ConfigError> {
     args.validate()
         .map_err(|e| ConfigError::ConfigLoadError(Box::new(e)))?;
@@ -181,16 +109,6 @@ fn validate(args: &Args, config: &Config) -> Result<(), ConfigError> {
         .map_err(|e| ConfigError::ConfigLoadError(Box::new(e)))?;
 
     Ok(())
-}
-
-#[derive(Debug, Error)]
-pub enum ConfigError {
-    #[error("Config file not found at path {0}")]
-    ConfigFileNotFound(PathBuf),
-    #[error("Config load failed: {0}")]
-    ConfigLoadError(Box<dyn Error>),
-    #[error("Arguments validation failed: {0}")]
-    ArgsValidationError(#[from] ValidationError),
 }
 
 pub fn init(seed: ConfigDeserializeSeed) -> Result<(Config, Args, PathBuf), ConfigError> {

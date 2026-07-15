@@ -1,8 +1,8 @@
-use super::super::Site;
-use crate::data::GeoDeg;
 use gdal::errors::GdalError;
 use gdal::vector::{Feature, FeatureIterator, Layer, LayerAccess};
 use gdal::Dataset;
+use pgaf_sdk::data::GeoDeg;
+use pgaf_sdk::site::Site;
 use std::rc::Rc;
 
 /// Implementation of SiteGenerator that allows streaming from a GDAL vector dataset.

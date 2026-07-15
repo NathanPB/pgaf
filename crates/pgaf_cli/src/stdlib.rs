@@ -1,12 +1,13 @@
-use super::resources::*;
-use super::{Namespace, Registry};
 use std::error::Error;
 
-pub fn init_itself(registries: &mut super::Registries) -> Result<Namespace, Box<dyn Error>> {
-    let namespace = registries.claim_namespace("std")?;
-    register_sitegen_drivers(&namespace, registries.regmut_sitegen_drivers())?;
-    register_function_drivers(&namespace, registries.regmut_function_drivers())?;
-    Ok(namespace)
+use pgaf_sdk::registry::{
+    FunctionDriverResource, Namespace, Registries, Registry, SiteGeneratorDriverResource,
+};
+
+pub fn init(namespace: &Namespace, registries: &mut Registries) -> Result<(), Box<dyn Error>> {
+    register_sitegen_drivers(namespace, registries.regmut_sitegen_drivers())?;
+    register_function_drivers(namespace, registries.regmut_function_drivers())?;
+    Ok(())
 }
 
 #[allow(unused_variables, unused_imports)]
@@ -43,7 +44,7 @@ fn register_function_drivers(
     namespace: &Namespace,
     registry: &mut Registry<FunctionDriverResource>,
 ) -> Result<(), Box<dyn Error>> {
-    use crate::functions::functions::*;
+    use crate::functions::*;
 
     registry.register(
         namespace,

@@ -1,8 +1,8 @@
 pub mod unbatched;
 
-use super::context::Context;
 use super::template::TemplateEngine;
 use super::PipelineData;
+use pgaf_sdk::context::Context;
 use std::error::Error;
 use std::sync::mpmc::{Receiver, Sender};
 

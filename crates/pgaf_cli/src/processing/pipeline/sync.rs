@@ -1,7 +1,7 @@
-use super::super::context::Context;
 use super::super::processor::Processor;
 use super::super::template::TemplateEngine;
 use super::{Pipeline, PipelineData};
+use pgaf_sdk::context::Context;
 use std::error::Error;
 use std::sync::mpmc::{Receiver, Sender};
 use std::sync::Arc;

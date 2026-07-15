@@ -1,3 +1,3 @@
 [workspace]
 resolver = "3"
-members = ["crates/pgaf_cli"]
+members = ["crates/pgaf_cli", "crates/pgaf_sdk"]

@@ -1,6 +1,7 @@
 #![allow(unused_imports)]
 
-use super::{config::*, gen::*, SiteGeneratorDriver};
+use super::gen::*;
+use pgaf_sdk::{config::*, site::SiteGeneratorDriver};
 use std::sync::{Arc, LazyLock};
 
 #[cfg(feature = "gdal")]
