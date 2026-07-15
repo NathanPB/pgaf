@@ -16,6 +16,6 @@ repository = "https://github.com/NathanPB/pgaf"
 license = "Apache-2.0"
 
 [workspace.dependencies]
-pgaf_engine = { path = "crates/pgaf_engine" }
-pgaf_sdk = { path = "crates/pgaf_sdk" }
-pgaf_std = { path = "crates/pgaf_std" }
+pgaf_engine = { path = "crates/pgaf_engine", version = "0.1.0" }
+pgaf_sdk = { path = "crates/pgaf_sdk", version = "0.1.0" }
+pgaf_std = { path = "crates/pgaf_std", version = "0.1.0" }
