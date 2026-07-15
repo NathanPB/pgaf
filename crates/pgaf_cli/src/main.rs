@@ -1,5 +1,5 @@
-mod config;
-mod workdir;
+use pgaf::config;
+use pgaf::workdir;
 
 use pgaf_engine::processor::ProcessingBuilder;
 use pgaf_sdk::registry;
