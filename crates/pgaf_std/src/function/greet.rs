@@ -26,7 +26,7 @@ impl Function<GreetArgs> for Greet {
 }
 
 pub static GREET_DRIVER: LazyLock<Driver> =
-    LazyLock::new(|| FunctionDriver::<Greet, GreetArgs>::new().coerce_to_dynamic());
+    LazyLock::new(|| FunctionDriver::<Greet, GreetArgs>::default().coerce_to_dynamic());
 
 #[cfg(test)]
 mod tests {

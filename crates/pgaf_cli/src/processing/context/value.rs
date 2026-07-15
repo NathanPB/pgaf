@@ -116,13 +116,13 @@ mod tests {
     }
 
     static FN_UPPERCASE: LazyLock<Driver> =
-        LazyLock::new(|| FunctionDriver::<FnUppercase, _>::new().coerce_to_dynamic());
+        LazyLock::new(|| FunctionDriver::<FnUppercase, _>::default().coerce_to_dynamic());
 
     fn deserialize_context_value(
         json: &str,
         seed: Option<ContextValueDeserializeSeed>,
     ) -> Result<ContextValue, Box<dyn Error>> {
-        let mut registries = Registries::new();
+        let mut registries = Registries::default();
         let namespace = registries.claim_namespace("std")?;
 
         registries.regmut_function_drivers().register(

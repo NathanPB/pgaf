@@ -9,7 +9,7 @@ use crate::workdir::make_workdir;
 use pgaf_sdk::registry;
 
 fn main() {
-    let mut registries = registry::Registries::new();
+    let mut registries = registry::Registries::default();
     let namespace = registries
         .claim_namespace("std")
         .expect("Failed to claim 'std' namespace.");

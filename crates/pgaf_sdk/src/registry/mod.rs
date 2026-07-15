@@ -62,14 +62,15 @@ pub struct Registry<T: Resource> {
     map: HashMap<(String, String), T>,
 }
 
-impl<T: Resource> Registry<T> {
-    /// Creates a new blank [`Registry`].
-    fn new() -> Self {
+impl<T: Resource> Default for Registry<T> {
+    fn default() -> Self {
         Self {
             map: HashMap::new(),
         }
     }
+}
 
+impl<T: Resource> Registry<T> {
     /// Registers a [`Resource`] `resource` under the given [`Identifier`] `id`.
     /// Will throw:
     /// - [`IllegalNameError`] if `id` is not a valid name (see [`RE_VALID_NAMESPACE_OR_ID`]).
@@ -133,6 +134,10 @@ impl<T: Resource> Registry<T> {
     pub fn len(&self) -> usize {
         self.map.len()
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.map.is_empty()
+    }
 }
 
 /// Holds the Registries ([`Registry`]) for the existing [`Resource`] types.
@@ -140,6 +145,7 @@ impl<T: Resource> Registry<T> {
 ///
 /// [`Registries`] must expose mutable and non-mutable access to the [`Registry`]s inside it via
 ///   functions like [`Registries::regmut_sitegen_drivers`] (``&mut``) and [`Registries::reg_sitegen_drivers`] (``&``).
+#[derive(Default)]
 pub struct Registries {
     namespaces: HashSet<Namespace>,
     reg_sitegen_drivers: Registry<SiteGeneratorDriverResource>,
@@ -147,15 +153,6 @@ pub struct Registries {
 }
 
 impl Registries {
-    /// Creates a new instance.
-    pub fn new() -> Self {
-        Self {
-            namespaces: HashSet::new(),
-            reg_sitegen_drivers: Registry::new(),
-            reg_function_drivers: Registry::new(),
-        }
-    }
-
     /// Claims a [`Namespace`] for the given `namespace` string.
     ///
     /// Namespaces are supposed to be claimed only once per plugin/extension.
@@ -198,12 +195,15 @@ mod tests {
 
     #[test]
     fn claim_namespace() {
-        assert_eq!(&*Registries::new().claim_namespace("foo").unwrap(), "foo");
+        assert_eq!(
+            &*Registries::default().claim_namespace("foo").unwrap(),
+            "foo"
+        );
     }
 
     #[test]
     fn dupe_namespace() {
-        let mut registries = Registries::new();
+        let mut registries = Registries::default();
         let namespace = registries.claim_namespace("foo").unwrap();
         assert_eq!(&*namespace, "foo");
 
@@ -215,7 +215,7 @@ mod tests {
 
     #[test]
     fn identifier() {
-        let mut registries = Registries::new();
+        let mut registries = Registries::default();
         let namespace = registries.claim_namespace("foo").unwrap();
         assert_eq!(namespace.id("bar").unwrap().to_string(), "foo:bar");
     }
@@ -227,7 +227,7 @@ mod tests {
     #[test]
     fn registry_invalid_id() {
         let namespace = Namespace::build("foo").unwrap();
-        let mut reg: Registry<DummyResource> = Registry::new();
+        let mut reg: Registry<DummyResource> = Registry::default();
         assert!(
             reg.register(&namespace, "inv@lid", DummyResource).is_err(),
             "Expected to disallow invalid id"
@@ -237,7 +237,7 @@ mod tests {
     #[test]
     fn register() {
         let namespace = Namespace::build("foo").unwrap();
-        let mut reg: Registry<DummyResource> = Registry::new();
+        let mut reg: Registry<DummyResource> = Registry::default();
         let identifier = namespace.id("bar").unwrap();
         reg.register(&namespace, &identifier.id, DummyResource)
             .unwrap();

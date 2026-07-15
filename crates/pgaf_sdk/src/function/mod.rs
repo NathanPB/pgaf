@@ -38,14 +38,18 @@ pub struct FunctionDriver<F: Function<A>, A> {
     _marker_a: PhantomData<A>,
 }
 
-impl<F: Function<A> + 'static, A: DeserializeOwned + Send + Sync + 'static> FunctionDriver<F, A> {
-    pub fn new() -> Self {
+impl<F: Function<A> + 'static, A: DeserializeOwned + Send + Sync + 'static> Default
+    for FunctionDriver<F, A>
+{
+    fn default() -> Self {
         Self {
             _marker_f: Default::default(),
             _marker_a: Default::default(),
         }
     }
+}
 
+impl<F: Function<A> + 'static, A: DeserializeOwned + Send + Sync + 'static> FunctionDriver<F, A> {
     pub fn coerce_to_dynamic(self) -> Driver {
         Driver(invoker_impl::<F, A>)
     }
@@ -135,7 +139,7 @@ mod tests {
         )]
         .into();
 
-        let result = FunctionDriver::<StringFn, StringArgs>::new()
+        let result = FunctionDriver::<StringFn, StringArgs>::default()
             .coerce_to_dynamic()
             .invoke(&args, &ctx)
             .unwrap();
@@ -159,7 +163,7 @@ mod tests {
         ]);
         let args = [("value".into(), ts)].into();
 
-        let result = FunctionDriver::<StringFn, StringArgs>::new()
+        let result = FunctionDriver::<StringFn, StringArgs>::default()
             .coerce_to_dynamic()
             .invoke(&args, &ctx)
             .unwrap();
@@ -171,7 +175,7 @@ mod tests {
     fn missing_arg() {
         let ctx = make_ctx();
         let args = FunctionArgs::new();
-        let err = FunctionDriver::<StringFn, StringArgs>::new()
+        let err = FunctionDriver::<StringFn, StringArgs>::default()
             .coerce_to_dynamic()
             .invoke(&args, &ctx)
             .unwrap_err();
@@ -191,7 +195,7 @@ mod tests {
         )]
         .into();
 
-        let err = FunctionDriver::<StringFn, StringArgs>::new()
+        let err = FunctionDriver::<StringFn, StringArgs>::default()
             .coerce_to_dynamic()
             .invoke(&args, &ctx)
             .unwrap_err();
