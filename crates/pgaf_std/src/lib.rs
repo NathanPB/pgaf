@@ -13,8 +13,8 @@ pub fn init(namespace: &Namespace, registries: &mut Registries) -> Result<(), Re
 }
 
 fn register_sitegen_drivers(
-    namespace: &Namespace,
-    registry: &mut Registry<SiteGeneratorDriverResource>,
+    _namespace: &Namespace,
+    _registry: &mut Registry<SiteGeneratorDriverResource>,
 ) -> Result<(), RegistryError> {
     #[cfg(feature = "gdal")]
     {

@@ -8,12 +8,11 @@ repository.workspace = true
 license.workspace = true
 
 [features]
-default = ["gdal"]
 gdal = ["dep:gdal"]
 
 [dependencies]
 pgaf_sdk = { workspace = true }
-gdal = { git = "https://github.com/georust/gdal.git", optional = true }
+gdal = { version = "0.19.0", optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde-inline-default = "1"
