@@ -3,13 +3,14 @@ mod threaded;
 
 use super::processor::Processor;
 use super::template::TemplateEngine;
-use super::PipelineData;
 use pgaf_sdk::config::Config;
 use pgaf_sdk::context::Context;
 use std::error::Error;
 use std::sync::mpmc::{Receiver, Sender};
 pub use sync::*;
 pub use threaded::*;
+
+pub trait PipelineData: Sized + Send + Sync {}
 
 pub trait Pipeline: Send + Sync {
     type Output: PipelineData;

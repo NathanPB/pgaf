@@ -18,7 +18,7 @@ pub enum Expr {
 }
 
 #[derive(pest_derive::Parser)]
-#[grammar = "processing/context/expr.pest"]
+#[grammar = "context/expr.pest"]
 struct EvalParser;
 
 impl From<pest::iterators::Pair<'_, Rule>> for Expr {

@@ -1,11 +1,7 @@
-#![feature(mpmc_channel)]
-
 mod config;
-mod processing;
 mod workdir;
 
-use crate::processing::ProcessingBuilder;
-use crate::workdir::make_workdir;
+use pgaf_engine::processor::ProcessingBuilder;
 use pgaf_sdk::registry;
 
 fn main() {
@@ -32,7 +28,7 @@ fn main() {
     );
 
     let (workdir, temp_wd) =
-        match make_workdir(&args.workdir, &args.keep_workdir, args.clear_workdir) {
+        match workdir::make_workdir(&args.workdir, &args.keep_workdir, args.clear_workdir) {
             Ok(workdir) => workdir,
             Err(e) => {
                 println!("Unable to validate working directory: {}", e);
@@ -48,7 +44,8 @@ fn main() {
 
     let processing = ProcessingBuilder {
         config: &config,
-        args: &args,
+        workers: args.workers,
+        pipeline_buffer_size: args.pipeline_buffer_size,
         workdir,
     }
     .build()

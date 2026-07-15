@@ -1,0 +1,16 @@
+[package]
+name = "pgaf_engine"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+pgaf_sdk = { path = "../pgaf_sdk" }
+serde = { version = "1", features = ["derive"] }
+num_cpus = "1"
+tera = { version = "1", default-features = false }
+thiserror = "2"
+pest = "2"
+pest_derive = "2"
+
+[dev-dependencies]
+serde_json = "1"

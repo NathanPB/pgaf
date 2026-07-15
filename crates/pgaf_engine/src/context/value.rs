@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use crate::processing::context::expr::Expr;
-use crate::processing::PipelineData;
+use crate::context::expr::Expr;
+use crate::pipeline::PipelineData;
 use pgaf_sdk::context::{Context, ContextEvaluationError, ContextValue, PrimitiveContextValue};
 use pgaf_sdk::registry::{PublicIdentifier, Registries};
 use serde::de::DeserializeSeed;

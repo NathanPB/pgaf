@@ -1,25 +1,34 @@
-use crate::config::Args;
-use crate::processing::template::TemplateEngine;
-use context::ContextGenerator;
+pub mod unbatched;
+
+use crate::context::generator::ContextGenerator;
+use crate::pipeline::{Pipeline, PipelineData, Pipelines, create_pipeline_from_config};
+use crate::template::TemplateEngine;
 use pgaf_sdk::config::Config;
 use pgaf_sdk::context::Context;
-use pipeline::{create_pipeline_from_config, Pipeline, Pipelines};
-use processor::unbatched::UnbatchedProcessor;
+use std::error::Error;
 use std::path::PathBuf;
-use std::sync::mpmc::sync_channel;
-use std::sync::Arc;
+use std::sync::{
+    Arc,
+    mpmc::{Receiver, Sender, sync_channel},
+};
 use std::thread;
+use unbatched::UnbatchedProcessor;
 
-pub mod context;
-mod pipeline;
-mod processor;
-mod template;
+pub trait Processor: Send + Sync {
+    type Output: PipelineData;
 
-pub trait PipelineData: Sized + Send + Sync {}
+    fn process(
+        &self,
+        tx: &Sender<Self::Output>,
+        rx: &Receiver<Context>,
+        templates: &TemplateEngine,
+    ) -> Result<(), Box<dyn Error + Send>>;
+}
 
 pub struct ProcessingBuilder<'a> {
     pub config: &'a Config,
-    pub args: &'a Args,
+    pub workers: usize,
+    pub pipeline_buffer_size: usize,
     pub workdir: PathBuf,
 }
 
@@ -37,7 +46,7 @@ impl<'a> ProcessingBuilder<'a> {
             workdir: self.workdir,
         };
 
-        let pipeline = create_pipeline_from_config(self.config, self.args.workers, processor)?;
+        let pipeline = create_pipeline_from_config(self.config, self.workers, processor)?;
 
         let mut templates = TemplateEngine::default();
         for run in &self.config.runs {
@@ -48,7 +57,7 @@ impl<'a> ProcessingBuilder<'a> {
             pipeline,
             ctx_gen,
             templates,
-            buffer_size: self.args.pipeline_buffer_size,
+            buffer_size: self.pipeline_buffer_size,
         })
     }
 }

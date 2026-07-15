@@ -3,6 +3,7 @@ use std::fmt;
 use std::marker::PhantomData;
 use std::path::PathBuf;
 
+use pgaf_engine::context::value::ContextValueDeserializeSeed;
 use pgaf_sdk::config::{Config, RunConfig, SiteSourceConfig};
 use pgaf_sdk::context::ContextValue;
 use pgaf_sdk::registry::{
@@ -10,8 +11,6 @@ use pgaf_sdk::registry::{
 };
 use serde::de::{DeserializeSeed, MapAccess, SeqAccess, Visitor};
 use serde_json::value::{Map, Value};
-
-use crate::processing::context::ContextValueDeserializeSeed;
 
 pub struct ConfigDeserializeSeed<'a, T = Config> {
     pub default_namespace: String,
