@@ -29,27 +29,27 @@ fn validate_workdir_is_directory(path: &Path) -> Result<(), ValidationError> {
 }
 
 fn validate_workdir_overrides(args: &Args) -> Result<(), ValidationError> {
-    if let Some(path) = &args.workdir {
-        if !args.clear_workdir {
-            match path.read_dir() {
-                Ok(entries) => {
-                    if entries.count() > 0 {
-                        let msg = format!(
-                            "Working directory {} is not empty. Specify --clear-workdir to FORCEFULLY OVERWRITE it.",
-                            path.display()
-                        );
-                        return Err(ValidationError::new(ERRCODE_WORKDIR_NOT_EMPTY)
-                            .with_message(Cow::from(msg)));
-                    }
+    if let Some(path) = &args.workdir
+        && !args.clear_workdir
+    {
+        match path.read_dir() {
+            Ok(entries) => {
+                if entries.count() > 0 {
+                    let msg = format!(
+                        "Working directory {} is not empty. Specify --clear-workdir to FORCEFULLY OVERWRITE it.",
+                        path.display()
+                    );
+                    return Err(ValidationError::new(ERRCODE_WORKDIR_NOT_EMPTY)
+                        .with_message(Cow::from(msg)));
                 }
-                Err(err) => match err.kind() {
-                    std::io::ErrorKind::NotFound => {}
-                    _ => panic!(
-                        "Unexpected error when checking workdir availability: {}",
-                        err
-                    ),
-                },
             }
+            Err(err) => match err.kind() {
+                std::io::ErrorKind::NotFound => {}
+                _ => panic!(
+                    "Unexpected error when checking workdir availability: {}",
+                    err
+                ),
+            },
         }
     }
     Ok(())

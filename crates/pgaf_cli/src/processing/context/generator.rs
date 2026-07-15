@@ -39,10 +39,10 @@ impl Iterator for ContextGenerator {
     type Item = Context;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(sample_size) = self.site_sample_size {
-            if self.current_site_count >= sample_size {
-                return None;
-            }
+        if let Some(sample_size) = self.site_sample_size
+            && self.current_site_count >= sample_size
+        {
+            return None;
         }
 
         if self.current_run >= self.runs.len() {

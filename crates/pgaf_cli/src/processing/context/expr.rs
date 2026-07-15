@@ -32,10 +32,10 @@ impl From<pest::iterators::Pair<'_, Rule>> for Expr {
             Rule::ident => Expr::Ident(pair.as_str().to_string()),
             Rule::string_template => {
                 let pieces: Vec<Expr> = pair.into_inner().map(Into::into).collect();
-                if pieces.len() == 1 {
-                    if let Some(Expr::String(s)) = pieces.first() {
-                        return Expr::String(s.clone());
-                    }
+                if pieces.len() == 1
+                    && let Some(Expr::String(s)) = pieces.first()
+                {
+                    return Expr::String(s.clone());
                 }
 
                 Expr::StringTemplate(pieces)
@@ -103,10 +103,10 @@ impl<'a> TryFrom<&'a str> for Expr {
                     let mut pieces: Vec<Expr> = vec![first_pair.into()];
                     pieces.extend(inner_rules.map(Into::into));
 
-                    if pieces.len() == 1 {
-                        if let Some(Expr::String(s)) = pieces.first() {
-                            return Ok(Expr::String(s.clone()));
-                        }
+                    if pieces.len() == 1
+                        && let Some(Expr::String(s)) = pieces.first()
+                    {
+                        return Ok(Expr::String(s.clone()));
                     }
 
                     Ok(Expr::StringTemplate(pieces))
