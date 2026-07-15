@@ -675,7 +675,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "pgaf_cli"
+name = "pgaf"
 version = "0.1.0"
 dependencies = [
  "clap",
