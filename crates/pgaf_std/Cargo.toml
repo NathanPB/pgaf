@@ -12,7 +12,7 @@ default = ["gdal"]
 gdal = ["dep:gdal"]
 
 [dependencies]
-pgaf_sdk = { path = "../pgaf_sdk" }
+pgaf_sdk = { workspace = true }
 gdal = { git = "https://github.com/georust/gdal.git", optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

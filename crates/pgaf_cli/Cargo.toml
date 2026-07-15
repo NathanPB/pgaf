@@ -8,9 +8,9 @@ repository.workspace = true
 license.workspace = true
 
 [dependencies]
-pgaf_engine = { path = "../pgaf_engine" }
-pgaf_sdk = { path = "../pgaf_sdk" }
-pgaf_std = { path = "../pgaf_std" }
+pgaf_engine = { workspace = true }
+pgaf_sdk = { workspace = true }
+pgaf_std = { workspace = true }
 clap = { version = "4.5.29", features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }
 validator = { version = "0.20.0", features = ["derive"] }

@@ -8,7 +8,7 @@ repository.workspace = true
 license.workspace = true
 
 [dependencies]
-pgaf_sdk = { path = "../pgaf_sdk" }
+pgaf_sdk = { workspace = true }
 serde = { version = "1", features = ["derive"] }
 num_cpus = "1"
 tera = { version = "1", default-features = false }
