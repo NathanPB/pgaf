@@ -8,6 +8,7 @@ members = [
 ]
 
 [workspace.package]
+version = "0.1.0"
 edition = "2024"
 authors = ["Nathan P. Bombana <nathan.pbombana@gmail.com>"]
 description = "Parallel Geospatial Analysis Framework — Work-In-Progress lightweight tool for mass-parallel geospatial analysis."
