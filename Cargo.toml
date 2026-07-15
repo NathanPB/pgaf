@@ -9,4 +9,6 @@ members = [
 
 [workspace.package]
 authors = ["Nathan P. Bombana <nathan.pbombana@gmail.com>"]
+description = "Parallel Geospatial Analysis Framework — Work-In-Progress lightweight tool for mass-parallel geospatial analysis."
+repository = "https://github.com/NathanPB/pgaf"
 license = "Apache-2.0"
