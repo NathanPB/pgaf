@@ -118,7 +118,7 @@ mod tests {
     fn make_ctx_with_extra(extra: HashMap<String, ContextValue>) -> Context {
         Context {
             unit: ExecutionUnit {
-                id: 1,
+                id: 1.into(),
                 lon: GeoDeg::from(0.0),
                 lat: GeoDeg::from(0.0),
             },

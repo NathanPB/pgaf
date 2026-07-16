@@ -186,7 +186,7 @@ impl Iterator for RasterDomainGenerator {
                 let (lon, lat) = gt.apply(x, y);
 
                 return Some(ExecutionUnit {
-                    id: value,
+                    id: value.into(),
                     lon: GeoDeg::from(lon + (self.px_size_x / 2.0)),
                     lat: GeoDeg::from(lat - (self.px_size_y / 2.0)),
                 });
@@ -228,102 +228,102 @@ mod tests {
 
         let expected = vec![
             ExecutionUnit {
-                id: 3894630,
+                id: 3894630.into(),
                 lon: GeoDeg::from(12.5418),
                 lat: GeoDeg::from(14.875),
             },
             ExecutionUnit {
-                id: 3898947,
+                id: 3898947.into(),
                 lon: GeoDeg::from(12.2919),
                 lat: GeoDeg::from(14.7917),
             },
             ExecutionUnit {
-                id: 3898948,
+                id: 3898948.into(),
                 lon: GeoDeg::from(12.3752),
                 lat: GeoDeg::from(14.7917),
             },
             ExecutionUnit {
-                id: 3898949,
+                id: 3898949.into(),
                 lon: GeoDeg::from(12.4585),
                 lat: GeoDeg::from(14.7917),
             },
             ExecutionUnit {
-                id: 3898975,
+                id: 3898975.into(),
                 lon: GeoDeg::from(14.6243),
                 lat: GeoDeg::from(14.7917),
             },
             ExecutionUnit {
-                id: 3898976,
+                id: 3898976.into(),
                 lon: GeoDeg::from(14.7076),
                 lat: GeoDeg::from(14.7917),
             },
             ExecutionUnit {
-                id: 3903264,
+                id: 3903264.into(),
                 lon: GeoDeg::from(12.042),
                 lat: GeoDeg::from(14.7084),
             },
             ExecutionUnit {
-                id: 3903265,
+                id: 3903265.into(),
                 lon: GeoDeg::from(12.1253),
                 lat: GeoDeg::from(14.7084),
             },
             ExecutionUnit {
-                id: 3903266,
+                id: 3903266.into(),
                 lon: GeoDeg::from(12.2086),
                 lat: GeoDeg::from(14.7084),
             },
             ExecutionUnit {
-                id: 3903267,
+                id: 3903267.into(),
                 lon: GeoDeg::from(12.2919),
                 lat: GeoDeg::from(14.7084),
             },
             ExecutionUnit {
-                id: 3903268,
+                id: 3903268.into(),
                 lon: GeoDeg::from(12.3752),
                 lat: GeoDeg::from(14.7084),
             },
             ExecutionUnit {
-                id: 3903269,
+                id: 3903269.into(),
                 lon: GeoDeg::from(12.4585),
                 lat: GeoDeg::from(14.7084),
             },
             ExecutionUnit {
-                id: 3903271,
+                id: 3903271.into(),
                 lon: GeoDeg::from(12.6251),
                 lat: GeoDeg::from(14.7084),
             },
             ExecutionUnit {
-                id: 3903273,
+                id: 3903273.into(),
                 lon: GeoDeg::from(12.7917),
                 lat: GeoDeg::from(14.7084),
             },
             ExecutionUnit {
-                id: 3903274,
+                id: 3903274.into(),
                 lon: GeoDeg::from(12.875),
                 lat: GeoDeg::from(14.7084),
             },
             ExecutionUnit {
-                id: 3903279,
+                id: 3903279.into(),
                 lon: GeoDeg::from(13.2915),
                 lat: GeoDeg::from(14.7084),
             },
             ExecutionUnit {
-                id: 3903280,
+                id: 3903280.into(),
                 lon: GeoDeg::from(13.3748),
                 lat: GeoDeg::from(14.7084),
             },
             ExecutionUnit {
-                id: 3903284,
+                id: 3903284.into(),
                 lon: GeoDeg::from(13.708),
                 lat: GeoDeg::from(14.7084),
             },
             ExecutionUnit {
-                id: 3903286,
+                id: 3903286.into(),
                 lon: GeoDeg::from(13.8746),
                 lat: GeoDeg::from(14.7084),
             },
             ExecutionUnit {
-                id: 3903293,
+                id: 3903293.into(),
                 lon: GeoDeg::from(14.4577),
                 lat: GeoDeg::from(14.7084),
             },

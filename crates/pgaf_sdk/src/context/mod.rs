@@ -50,8 +50,8 @@ impl Context {
 
     pub fn tera(&self) -> Result<tera::Context, ContextEvaluationError> {
         let mut ctx = tera::Context::new();
-        ctx.insert("site_id", &self.unit.id);
-        ctx.insert("soil_id", &self.unit.id); // Backwards compatibility. In the original Pythia, the site ID was the soil ID.
+        ctx.insert("site_id", &self.unit.id.to_string());
+        ctx.insert("soil_id", &self.unit.id.to_string()); // Backwards compatibility. In the original Pythia, the site ID was the soil ID.
         ctx.insert("lng", &self.unit.lon.as_f32()); // Backwards compatibility, original Pythia impl used lat/lng instead of lon/lat.
         ctx.insert("lon", &self.unit.lon.as_f32());
         ctx.insert("lat", &self.unit.lat.as_f32());
@@ -78,7 +78,7 @@ mod tests {
         let wd = PathBuf::from("/tmp");
         let ctx = Context {
             unit: ExecutionUnit {
-                id: 0,
+                id: 0.into(),
                 lon: GeoDeg::from(15.222),
                 lat: GeoDeg::from(-15.23133),
             },

@@ -68,16 +68,18 @@ impl Iterator for ContextGenerator {
 mod tests {
     use super::*;
     use pgaf_sdk::data::GeoDeg;
+    use pgaf_sdk::domain::UnitId;
     use std::collections::HashMap;
     use std::path::PathBuf;
 
     #[test]
     fn context_gen() {
-        let domain_gen: Box<dyn DomainGenerator> = Box::new((0..200).map(|id| ExecutionUnit {
-            id,
-            lon: GeoDeg::from(0.0),
-            lat: GeoDeg::from(0.0),
-        }));
+        let domain_gen: Box<dyn DomainGenerator> =
+            Box::new((0..200).map(|id: i64| ExecutionUnit {
+                id: id.into(),
+                lon: GeoDeg::from(0.0),
+                lat: GeoDeg::from(0.0),
+            }));
 
         let runs = vec![
             RunConfig {
@@ -93,10 +95,10 @@ mod tests {
         ];
 
         let generator = ContextGenerator::new(domain_gen, runs, None).unwrap();
-        let mut max = i32::MIN;
+        let mut max = i64::MIN;
 
         for (i, ctx) in generator.enumerate() {
-            assert_eq!((i / 2) as i32, ctx.unit.id);
+            assert_eq!(UnitId::Int((i / 2) as i64), ctx.unit.id);
 
             if i % 2 == 0 {
                 assert_eq!(ctx.run.name, "r1");
@@ -104,7 +106,9 @@ mod tests {
                 assert_eq!(ctx.run.name, "r2");
             }
 
-            max = max.max(ctx.unit.id);
+            if let UnitId::Int(v) = ctx.unit.id {
+                max = max.max(v);
+            }
         }
 
         assert_eq!(max, 199);
@@ -112,11 +116,12 @@ mod tests {
 
     #[test]
     fn test_sample_size() {
-        let domain_src: Box<dyn DomainGenerator> = Box::new((0..200).map(|id| ExecutionUnit {
-            id,
-            lon: GeoDeg::from(0.0),
-            lat: GeoDeg::from(0.0),
-        }));
+        let domain_src: Box<dyn DomainGenerator> =
+            Box::new((0..200).map(|id: i64| ExecutionUnit {
+                id: id.into(),
+                lon: GeoDeg::from(0.0),
+                lat: GeoDeg::from(0.0),
+            }));
 
         let runs = vec![RunConfig {
             name: String::from("r1"),

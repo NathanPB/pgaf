@@ -1,6 +1,7 @@
 use crate::data::GeoDeg;
 use std::any::Any;
 use std::error::Error;
+use std::fmt;
 use std::sync::Arc;
 
 /// Constructs a new [`DomainGenerator`] of type [`G`] from the config [`C`].
@@ -53,8 +54,97 @@ impl<G: DomainGenerator, C> DomainGeneratorDriver<G, C> {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub enum UnitId {
+    Int(i64),
+    Float(f64),
+    Text(Arc<str>),
+}
+
+impl fmt::Display for UnitId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UnitId::Int(v) => write!(f, "{v}"),
+            UnitId::Float(v) => write!(f, "{v}"),
+            UnitId::Text(v) => f.write_str(v),
+        }
+    }
+}
+
+impl From<i8> for UnitId {
+    fn from(v: i8) -> Self {
+        UnitId::Int(v as i64)
+    }
+}
+
+impl From<i16> for UnitId {
+    fn from(v: i16) -> Self {
+        UnitId::Int(v as i64)
+    }
+}
+
+impl From<i32> for UnitId {
+    fn from(v: i32) -> Self {
+        UnitId::Int(v as i64)
+    }
+}
+
+impl From<i64> for UnitId {
+    fn from(v: i64) -> Self {
+        UnitId::Int(v)
+    }
+}
+
+impl From<u8> for UnitId {
+    fn from(v: u8) -> Self {
+        UnitId::Int(v as i64)
+    }
+}
+
+impl From<u16> for UnitId {
+    fn from(v: u16) -> Self {
+        UnitId::Int(v as i64)
+    }
+}
+
+impl From<u32> for UnitId {
+    fn from(v: u32) -> Self {
+        UnitId::Int(v as i64)
+    }
+}
+
+impl From<f32> for UnitId {
+    fn from(v: f32) -> Self {
+        UnitId::Float(v as f64)
+    }
+}
+
+impl From<f64> for UnitId {
+    fn from(v: f64) -> Self {
+        UnitId::Float(v)
+    }
+}
+
+impl From<String> for UnitId {
+    fn from(v: String) -> Self {
+        UnitId::Text(Arc::from(v))
+    }
+}
+
+impl From<&str> for UnitId {
+    fn from(v: &str) -> Self {
+        UnitId::Text(Arc::from(v))
+    }
+}
+
+impl From<Arc<str>> for UnitId {
+    fn from(v: Arc<str>) -> Self {
+        UnitId::Text(v)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct ExecutionUnit {
-    pub id: i32,
+    pub id: UnitId,
     pub lon: GeoDeg,
     pub lat: GeoDeg,
 }

@@ -38,7 +38,7 @@ mod tests {
     fn greet() {
         let ctx = Context {
             unit: ExecutionUnit {
-                id: 1,
+                id: 1.into(),
                 lon: GeoDeg::from(0.0),
                 lat: GeoDeg::from(0.0),
             },

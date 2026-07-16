@@ -128,7 +128,7 @@ fn feature_to_unit(feature: &Feature, unit_id_key: &str) -> Option<ExecutionUnit
         if let Ok(id) = id_result {
             let (lon, lat, _) = geometry.get_point(0);
             return Some(ExecutionUnit {
-                id,
+                id: id.into(),
                 lon: GeoDeg::from(lon),
                 lat: GeoDeg::from(lat),
             });
@@ -158,102 +158,102 @@ mod tests {
 
         let expected = vec![
             ExecutionUnit {
-                id: 3989689,
+                id: 3989689.into(),
                 lon: GeoDeg::from(14.125),
                 lat: GeoDeg::from(13.042),
             },
             ExecutionUnit {
-                id: 3989690,
+                id: 3989690.into(),
                 lon: GeoDeg::from(14.208),
                 lat: GeoDeg::from(13.042),
             },
             ExecutionUnit {
-                id: 3989691,
+                id: 3989691.into(),
                 lon: GeoDeg::from(14.292),
                 lat: GeoDeg::from(13.042),
             },
             ExecutionUnit {
-                id: 3989692,
+                id: 3989692.into(),
                 lon: GeoDeg::from(14.375),
                 lat: GeoDeg::from(13.042),
             },
             ExecutionUnit {
-                id: 3989693,
+                id: 3989693.into(),
                 lon: GeoDeg::from(14.458),
                 lat: GeoDeg::from(13.042),
             },
             ExecutionUnit {
-                id: 3994009,
+                id: 3994009.into(),
                 lon: GeoDeg::from(14.125),
                 lat: GeoDeg::from(12.958),
             },
             ExecutionUnit {
-                id: 3994010,
+                id: 3994010.into(),
                 lon: GeoDeg::from(14.208),
                 lat: GeoDeg::from(12.958),
             },
             ExecutionUnit {
-                id: 3994011,
+                id: 3994011.into(),
                 lon: GeoDeg::from(14.292),
                 lat: GeoDeg::from(12.958),
             },
             ExecutionUnit {
-                id: 3994012,
+                id: 3994012.into(),
                 lon: GeoDeg::from(14.375),
                 lat: GeoDeg::from(12.958),
             },
             ExecutionUnit {
-                id: 3994013,
+                id: 3994013.into(),
                 lon: GeoDeg::from(14.458),
                 lat: GeoDeg::from(12.958),
             },
             ExecutionUnit {
-                id: 3998329,
+                id: 3998329.into(),
                 lon: GeoDeg::from(14.125),
                 lat: GeoDeg::from(12.875),
             },
             ExecutionUnit {
-                id: 3998330,
+                id: 3998330.into(),
                 lon: GeoDeg::from(14.208),
                 lat: GeoDeg::from(12.875),
             },
             ExecutionUnit {
-                id: 3998331,
+                id: 3998331.into(),
                 lon: GeoDeg::from(14.292),
                 lat: GeoDeg::from(12.875),
             },
             ExecutionUnit {
-                id: 3998332,
+                id: 3998332.into(),
                 lon: GeoDeg::from(14.375),
                 lat: GeoDeg::from(12.875),
             },
             ExecutionUnit {
-                id: 3998333,
+                id: 3998333.into(),
                 lon: GeoDeg::from(14.458),
                 lat: GeoDeg::from(12.875),
             },
             ExecutionUnit {
-                id: 3998334,
+                id: 3998334.into(),
                 lon: GeoDeg::from(14.542),
                 lat: GeoDeg::from(12.875),
             },
             ExecutionUnit {
-                id: 4002650,
+                id: 4002650.into(),
                 lon: GeoDeg::from(14.208),
                 lat: GeoDeg::from(12.792),
             },
             ExecutionUnit {
-                id: 4002651,
+                id: 4002651.into(),
                 lon: GeoDeg::from(14.292),
                 lat: GeoDeg::from(12.792),
             },
             ExecutionUnit {
-                id: 4002652,
+                id: 4002652.into(),
                 lon: GeoDeg::from(14.375),
                 lat: GeoDeg::from(12.792),
             },
             ExecutionUnit {
-                id: 4002653,
+                id: 4002653.into(),
                 lon: GeoDeg::from(14.458),
                 lat: GeoDeg::from(12.792),
             },

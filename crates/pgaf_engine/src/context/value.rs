@@ -230,7 +230,7 @@ mod tests {
     fn evaluate_context_lookup() {
         let ctx = Context {
             unit: ExecutionUnit {
-                id: 0,
+                id: 0.into(),
                 lon: GeoDeg::from(15.222),
                 lat: GeoDeg::from(-15.23133),
             },

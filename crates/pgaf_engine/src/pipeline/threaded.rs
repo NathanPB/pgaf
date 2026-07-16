@@ -3,8 +3,8 @@ use super::super::template::TemplateEngine;
 use super::{Pipeline, PipelineData};
 use pgaf_sdk::context::Context;
 use std::error::Error;
-use std::sync::mpmc::{Receiver, Sender};
 use std::sync::Arc;
+use std::sync::mpmc::{Receiver, Sender};
 use std::thread;
 use std::thread::ScopedJoinHandle;
 
