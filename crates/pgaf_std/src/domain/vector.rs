@@ -1,8 +1,8 @@
 use gdal::Dataset;
 use gdal::errors::GdalError;
-use gdal::vector::{Feature, FeatureIterator, Layer, LayerAccess};
+use gdal::vector::{Feature, FeatureIterator, FieldValue, Layer, LayerAccess};
 use pgaf_sdk::data::GeoDeg;
-use pgaf_sdk::domain::{DomainGeneratorDriver, ExecutionUnit};
+use pgaf_sdk::domain::{DomainGeneratorDriver, ExecutionUnit, UnitId};
 use serde::Deserialize;
 use serde_inline_default::serde_inline_default;
 use std::rc::Rc;
@@ -34,7 +34,7 @@ pub struct VectorDomainGeneratorConfig {
     #[validate(length(min = 1, message = "Vector file path cannot be empty"))]
     pub file: String,
 
-    #[serde_inline_default("ID".to_string())] // TODO: Don't assume defaults.
+    #[serde_inline_default("ID".to_string())]
     #[validate(length(min = 1, message = "ExecutionUnit ID key cannot be empty"))]
     pub unit_id_key: String,
 }
@@ -101,34 +101,43 @@ impl Iterator for VectorDomainGenerator {
 }
 
 fn feature_to_unit(feature: &Feature, unit_id_key: &str) -> Option<ExecutionUnit> {
+    // TODO: Fix the error handling of this nightmare.
+    // Currently, errors are just being silently swallowed.
+
     if let Some(geometry) = feature.geometry() {
         if geometry.geometry_type() != gdal::vector::OGRwkbGeometryType::wkbPoint {
             return None;
         }
 
         let field_idx = feature.field_index(unit_id_key).ok()?;
-
-        // TODO better error handling. At least expose something in the interface to let consumers know if something went wrong.
-        let id_result = feature
+        let id_result: Result<UnitId, _> = feature
             .field(field_idx)
             .and_then(|id| {
                 id.ok_or(GdalError::NullPointer {
-                    method_name: "dummy",
-                    msg: "Feature has no id".to_string(),
+                    method_name: "pgaf_std::domain::vector::feature_to_unit",
+                    msg: format!("Feature has no field '{unit_id_key}'."),
                 })
             })
-            .map(|id| id.into_int())
             .and_then(|id| {
-                id.ok_or(GdalError::NullPointer {
-                    method_name: "dummy",
-                    msg: "Feature ID is not i32".to_string(),
-                })
+                let ogr_type = id.ogr_field_type();
+                match id {
+                    FieldValue::IntegerValue(v) => Ok(v.into()),
+                    FieldValue::Integer64Value(v) => Ok(v.into()),
+                    FieldValue::StringValue(v) => Ok(v.into()),
+                    FieldValue::RealValue(v) => Ok(v.into()),
+                    _ => Err(GdalError::NullPointer {
+                        method_name: "pgaf_std::domain::vector::feature_to_unit",
+                        msg: format!(
+                            "Feature ID is not of any compatible type. Found ORG type {ogr_type}.",
+                        ),
+                    }),
+                }
             });
 
         if let Ok(id) = id_result {
             let (lon, lat, _) = geometry.get_point(0);
             return Some(ExecutionUnit {
-                id: id.into(),
+                id,
                 lon: GeoDeg::from(lon),
                 lat: GeoDeg::from(lat),
             });

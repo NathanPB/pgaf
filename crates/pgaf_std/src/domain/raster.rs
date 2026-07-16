@@ -1,7 +1,7 @@
 use gdal::raster::{Buffer, GdalDataType};
 use gdal::{Dataset, GeoTransformEx};
 use pgaf_sdk::data::GeoDeg;
-use pgaf_sdk::domain::{DomainGeneratorDriver, ExecutionUnit};
+use pgaf_sdk::domain::{DomainGeneratorDriver, ExecutionUnit, UnitId};
 use serde::Deserialize;
 use serde_inline_default::serde_inline_default;
 use std::fmt;
@@ -9,40 +9,54 @@ use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
 use validator::Validate;
 
-/// Represents an error meaning that the desired data type of the raster band is not supported.
-#[derive(Debug, Clone)]
-struct InvalidRasterDataTypeError {
-    expected: GdalDataType,
-    actual: GdalDataType,
+enum RasterBuffer {
+    UInt8(Buffer<u8>),
+    Int8(Buffer<i8>),
+    UInt16(Buffer<u16>),
+    Int16(Buffer<i16>),
+    UInt32(Buffer<u32>),
+    Int32(Buffer<i32>),
+    UInt64(Buffer<u64>),
+    Int64(Buffer<i64>),
+    Float32(Buffer<f32>),
+    Float64(Buffer<f64>),
 }
 
-impl InvalidRasterDataTypeError {
-    fn new(actual: GdalDataType) -> Self {
-        InvalidRasterDataTypeError {
-            expected: GdalDataType::Int32,
-            actual,
+impl RasterBuffer {
+    fn get(&self, idx: usize, no_data: Option<f64>) -> Option<UnitId> {
+        macro_rules! buf_get {
+            ($b:expr, $idx:expr, $($variant:ident),+) => {
+                match $b {
+                    $(RasterBuffer::$variant(b) => {
+                        let v = *b.data().get($idx)?;
+                        if no_data.is_some_and(|nd| v as f64 == nd) {
+                            return None;
+                        }
+                        Some(v.into())
+                    },)+
+                }
+            };
         }
-    }
-}
 
-impl fmt::Display for InvalidRasterDataTypeError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "Invalid raster data type. Expected {}, got {}.",
-            self.expected, self.actual
+        buf_get!(
+            self, idx, UInt8, Int8, UInt16, Int16, UInt32, Int32, UInt64, Int64, Float32, Float64
         )
     }
 }
 
-impl std::error::Error for InvalidRasterDataTypeError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        None
+/// Represents an error meaning that the data type of the raster band is not supported.
+#[derive(Debug, Clone)]
+struct InvalidRasterDataTypeError(GdalDataType);
+
+impl std::error::Error for InvalidRasterDataTypeError {}
+
+impl fmt::Display for InvalidRasterDataTypeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Invalid raster data type {}.", self.0)
     }
 }
 
 /// Implementation of [`pgaf_sdk::domain::DomainGenerator`] that allows streaming from a GDAL raster dataset.
-/// Works only on bands of data type Int32.
 ///
 /// Example usage with https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/1PEEY0:
 ///
@@ -58,7 +72,7 @@ impl std::error::Error for InvalidRasterDataTypeError {
 /// ```
 pub struct RasterDomainGenerator {
     ds: Rc<Dataset>,
-    no_data_value: i32,
+    no_data_value: Option<f64>,
     band_index: usize,
     px_size_x: f64,
     px_size_y: f64,
@@ -68,7 +82,7 @@ pub struct RasterDomainGenerator {
     block_y_size: usize,
     curr_block_x: usize,
     curr_block_y: usize,
-    buffer: Option<Buffer<i32>>,
+    buffer: Option<RasterBuffer>,
     buffer_x_size: usize,
     buffer_y_size: usize,
     px_idx: usize,
@@ -100,13 +114,8 @@ impl RasterDomainGenerator {
         let band = ds.rasterband(band_index + 1)?;
         let (x_size, y_size) = band.size();
 
-        let band_type = band.band_type();
-        if band_type != GdalDataType::Int32 {
-            return Err(Box::new(InvalidRasterDataTypeError::new(band_type)));
-        }
-
         let (block_x_size, block_y_size) = band.block_size();
-        let no_data_value = band.no_data_value().unwrap_or(0.0) as i32;
+        let no_data_value = band.no_data_value();
 
         // https://gdal.org/en/stable/tutorials/geotransforms_tut.html
         let geo_transform = ds.geo_transform()?;
@@ -131,36 +140,46 @@ impl RasterDomainGenerator {
             px_idx: 0,
         };
 
-        generator.load_next_block();
+        // TODO: Investigate if this is skipping the first pixel.
+        generator.load_next_block()?;
         Ok(generator)
     }
 
-    fn load_next_block(&mut self) -> bool {
+    fn load_next_block(&mut self) -> Result<bool, InvalidRasterDataTypeError> {
         if (self.curr_block_y * self.block_y_size) >= self.y_size
             || (self.curr_block_x * self.block_x_size) >= self.x_size
         {
-            return false;
+            return Ok(false);
         }
 
-        match self
-            .ds
-            .rasterband(self.band_index)
-            .unwrap()
-            .read_block((self.curr_block_x, self.curr_block_y))
-        {
-            Ok(buffer) => {
-                self.buffer_x_size = self
-                    .block_x_size
-                    .min(self.x_size - self.curr_block_x * self.block_x_size);
-                self.buffer_y_size = self
-                    .block_y_size
-                    .min(self.y_size - self.curr_block_y * self.block_y_size);
-                self.buffer = Some(buffer);
-                self.px_idx = 0;
-                true
-            }
-            Err(_) => false,
-        }
+        let bidx = (self.curr_block_x, self.curr_block_y);
+        let err_msg = "Failed to read gdal raster block.";
+        let band = self.ds.rasterband(self.band_index).unwrap();
+        let buffer = match band.band_type() {
+            GdalDataType::Int8 => RasterBuffer::Int8(band.read_block(bidx).expect(err_msg)),
+            GdalDataType::Int16 => RasterBuffer::Int16(band.read_block(bidx).expect(err_msg)),
+            GdalDataType::Int32 => RasterBuffer::Int32(band.read_block(bidx).expect(err_msg)),
+            GdalDataType::Int64 => RasterBuffer::Int64(band.read_block(bidx).expect(err_msg)),
+            GdalDataType::UInt8 => RasterBuffer::UInt8(band.read_block(bidx).expect(err_msg)),
+            GdalDataType::UInt16 => RasterBuffer::UInt16(band.read_block(bidx).expect(err_msg)),
+            GdalDataType::UInt32 => RasterBuffer::UInt32(band.read_block(bidx).expect(err_msg)),
+            GdalDataType::UInt64 => RasterBuffer::UInt64(band.read_block(bidx).expect(err_msg)),
+            GdalDataType::Float32 => RasterBuffer::Float32(band.read_block(bidx).expect(err_msg)),
+            GdalDataType::Float64 => RasterBuffer::Float64(band.read_block(bidx).expect(err_msg)),
+            other => return Err(InvalidRasterDataTypeError(other)),
+        };
+
+        self.buffer_x_size = self
+            .block_x_size
+            .min(self.x_size - self.curr_block_x * self.block_x_size);
+
+        self.buffer_y_size = self
+            .block_y_size
+            .min(self.y_size - self.curr_block_y * self.block_y_size);
+
+        self.buffer = Some(buffer);
+        self.px_idx = 0;
+        Ok(true)
     }
 }
 
@@ -174,11 +193,12 @@ impl Iterator for RasterDomainGenerator {
             {
                 let x_offset = self.px_idx % self.buffer_x_size;
                 let y_offset = self.px_idx / self.buffer_x_size;
-                let value = buffer.data()[self.px_idx];
+                let value = buffer.get(self.px_idx, self.no_data_value);
                 self.px_idx += 1;
-                if value == self.no_data_value {
+
+                let Some(value) = value else {
                     continue;
-                }
+                };
 
                 let x = (self.curr_block_x * self.block_x_size + x_offset) as f64;
                 let y = (self.curr_block_y * self.block_y_size + y_offset) as f64;
@@ -186,7 +206,7 @@ impl Iterator for RasterDomainGenerator {
                 let (lon, lat) = gt.apply(x, y);
 
                 return Some(ExecutionUnit {
-                    id: value.into(),
+                    id: value,
                     lon: GeoDeg::from(lon + (self.px_size_x / 2.0)),
                     lat: GeoDeg::from(lat - (self.px_size_y / 2.0)),
                 });
@@ -198,7 +218,8 @@ impl Iterator for RasterDomainGenerator {
                 self.curr_block_y += 1;
             }
 
-            if !self.load_next_block() {
+            // TODO: stop silently swallowing the error.
+            if !self.load_next_block().unwrap_or(false) {
                 return None;
             }
         }

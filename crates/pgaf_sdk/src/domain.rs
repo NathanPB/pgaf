@@ -56,6 +56,7 @@ impl<G: DomainGenerator, C> DomainGeneratorDriver<G, C> {
 #[derive(Debug, Clone, PartialEq)]
 pub enum UnitId {
     Int(i64),
+    BiggusIntus(u64),
     Float(f64),
     Text(Arc<str>),
 }
@@ -64,6 +65,7 @@ impl fmt::Display for UnitId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             UnitId::Int(v) => write!(f, "{v}"),
+            UnitId::BiggusIntus(v) => write!(f, "{v}"),
             UnitId::Float(v) => write!(f, "{v}"),
             UnitId::Text(v) => f.write_str(v),
         }
@@ -109,6 +111,12 @@ impl From<u16> for UnitId {
 impl From<u32> for UnitId {
     fn from(v: u32) -> Self {
         UnitId::Int(v as i64)
+    }
+}
+
+impl From<u64> for UnitId {
+    fn from(v: u64) -> Self {
+        UnitId::BiggusIntus(v)
     }
 }
 
