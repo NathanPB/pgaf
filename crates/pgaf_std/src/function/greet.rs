@@ -18,8 +18,8 @@ impl Function<GreetArgs> for Greet {
         ctx: &Context,
     ) -> Result<PrimitiveContextValue, FunctionRuntimeError> {
         let result = format!(
-            "Hello {} {}, we are on site {}.",
-            args.first_name, args.last_name, ctx.site.id
+            "Hello {} {}, we are on unit {}.",
+            args.first_name, args.last_name, ctx.unit.id
         );
         Ok(PrimitiveContextValue::String(result))
     }
@@ -31,13 +31,13 @@ pub static GREET_DRIVER: LazyLock<Driver> =
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pgaf_sdk::{config::RunConfig, context::ContextValue, data::GeoDeg, site::Site};
+    use pgaf_sdk::{config::RunConfig, context::ContextValue, data::GeoDeg, domain::ExecutionUnit};
     use std::path::PathBuf;
 
     #[test]
     fn greet() {
         let ctx = Context {
-            site: Site {
+            unit: ExecutionUnit {
                 id: 1,
                 lon: GeoDeg::from(0.0),
                 lat: GeoDeg::from(0.0),
@@ -65,7 +65,7 @@ mod tests {
 
         assert_eq!(
             result,
-            PrimitiveContextValue::String("Hello Alice Smith, we are on site 1.".into())
+            PrimitiveContextValue::String("Hello Alice Smith, we are on unit 1.".into())
         );
     }
 }

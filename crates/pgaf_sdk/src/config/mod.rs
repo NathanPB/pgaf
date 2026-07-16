@@ -2,7 +2,7 @@ mod validate; // TODO: Decouple validation/parsing from SDK
 
 use crate::{
     context::ContextValue,
-    site::{SiteGenerator, SiteGeneratorDriver},
+    domain::{DomainGenerator, DomainGeneratorDriver},
 };
 use serde::Serialize;
 use serde_inline_default::serde_inline_default;
@@ -14,7 +14,7 @@ use validator::Validate;
 #[serde_inline_default]
 #[derive(Validate, Clone)]
 pub struct Config {
-    pub sites: SiteSourceConfig,
+    pub domain: DomainConfig,
 
     #[validate(length(min = 1, message = "At least one run is required"))]
     #[validate(nested)]
@@ -23,14 +23,14 @@ pub struct Config {
 }
 
 #[derive(Validate, Clone)]
-pub struct SiteSourceConfig {
-    pub driver: SiteGeneratorDriver<Box<dyn SiteGenerator>, Box<dyn Any>>,
+pub struct DomainConfig {
+    pub driver: DomainGeneratorDriver<Box<dyn DomainGenerator>, Box<dyn Any>>,
     pub sample_size: Option<usize>,
     pub args: serde_json::Value,
 }
 
-impl SiteSourceConfig {
-    pub fn build(&self) -> Result<Box<dyn SiteGenerator>, Box<dyn Error>> {
+impl DomainConfig {
+    pub fn build(&self) -> Result<Box<dyn DomainGenerator>, Box<dyn Error>> {
         let config = (self.driver.config_deserializer)(self.args.clone())?;
         (self.driver.create)(config)
     }

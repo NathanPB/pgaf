@@ -1,8 +1,7 @@
 use gdal::raster::{Buffer, GdalDataType};
 use gdal::{Dataset, GeoTransformEx};
 use pgaf_sdk::data::GeoDeg;
-use pgaf_sdk::site::Site;
-use pgaf_sdk::site::SiteGeneratorDriver;
+use pgaf_sdk::domain::{DomainGeneratorDriver, ExecutionUnit};
 use serde::Deserialize;
 use serde_inline_default::serde_inline_default;
 use std::fmt;
@@ -42,7 +41,7 @@ impl std::error::Error for InvalidRasterDataTypeError {
     }
 }
 
-/// Implementation of SiteGenerator that allows streaming from a GDAL raster dataset.
+/// Implementation of [`pgaf_sdk::domain::DomainGenerator`] that allows streaming from a GDAL raster dataset.
 /// Works only on bands of data type Int32.
 ///
 /// Example usage with https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/1PEEY0:
@@ -50,14 +49,14 @@ impl std::error::Error for InvalidRasterDataTypeError {
 /// Take a raster dataset. Instructions on how to rasterize can be found at [testdata/DSSAT-Soils.tif](testdata/README.md#dssat-soilstif).
 ///
 /// ```rs
-/// match RasterSiteGenerator::new("Point5m_SoilGrids-for-DSSAT-10km_v1.tif", 0) {
-///     Ok(gen) => for site in gen {
-///         println!("{:?}", site);
+/// match RasterDomainGenerator::new("Point5m_SoilGrids-for-DSSAT-10km_v1.tif", 0) {
+///     Ok(gen) => for unit in gen {
+///         println!("{:?}", unit);
 ///     },
 ///     Err(e) => println!("{}", e),
 /// }
 /// ```
-pub struct RasterSiteGenerator {
+pub struct RasterDomainGenerator {
     ds: Rc<Dataset>,
     no_data_value: i32,
     band_index: usize,
@@ -77,7 +76,7 @@ pub struct RasterSiteGenerator {
 
 #[serde_inline_default]
 #[derive(Validate, Deserialize, Clone, Debug)]
-pub struct RasterSiteGeneratorConfig {
+pub struct RasterDomainGeneratorConfig {
     pub file: String,
 
     #[serde_inline_default(0)]
@@ -85,16 +84,15 @@ pub struct RasterSiteGeneratorConfig {
 }
 
 pub const RASTER_DRIVER: LazyLock<
-    SiteGeneratorDriver<RasterSiteGenerator, RasterSiteGeneratorConfig>,
-> = LazyLock::new(|| SiteGeneratorDriver {
-    create: Arc::new(|c: RasterSiteGeneratorConfig| {
-        RasterSiteGenerator::new(c.file.as_str(), c.layer_index)
+    DomainGeneratorDriver<RasterDomainGenerator, RasterDomainGeneratorConfig>,
+> = LazyLock::new(|| DomainGeneratorDriver {
+    create: Arc::new(|c: RasterDomainGeneratorConfig| {
+        RasterDomainGenerator::new(c.file.as_str(), c.layer_index)
     }),
     config_deserializer: Arc::new(serde_json::from_value),
 });
 
-impl RasterSiteGenerator {
-    /// Constructs a new RasterSiteGenerator.
+impl RasterDomainGenerator {
     /// Parameter "path" is the GDAL-valid path to the raster dataset.
     /// Parameter "band_index" is the **ZERO-BASED** index of the band to use.
     pub fn new(path: &str, band_index: usize) -> Result<Self, Box<dyn std::error::Error>> {
@@ -166,8 +164,8 @@ impl RasterSiteGenerator {
     }
 }
 
-impl Iterator for RasterSiteGenerator {
-    type Item = Site;
+impl Iterator for RasterDomainGenerator {
+    type Item = ExecutionUnit;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -187,7 +185,7 @@ impl Iterator for RasterSiteGenerator {
                 let gt = self.ds.geo_transform().unwrap();
                 let (lon, lat) = gt.apply(x, y);
 
-                return Some(Site {
+                return Some(ExecutionUnit {
                     id: value,
                     lon: GeoDeg::from(lon + (self.px_size_x / 2.0)),
                     lat: GeoDeg::from(lat - (self.px_size_y / 2.0)),
@@ -213,7 +211,7 @@ mod tests {
     use std::path::Path;
 
     #[test]
-    fn test_raster_site_generator() {
+    fn test_raster_domain_generator() {
         let testfile = Path::new(env!("CARGO_MANIFEST_DIR"))
             .parent()
             .unwrap()
@@ -226,105 +224,105 @@ mod tests {
 
         dbg!(&testfile);
 
-        let generator = RasterSiteGenerator::new(&testfile, 0).unwrap();
+        let generator = RasterDomainGenerator::new(&testfile, 0).unwrap();
 
         let expected = vec![
-            Site {
+            ExecutionUnit {
                 id: 3894630,
                 lon: GeoDeg::from(12.5418),
                 lat: GeoDeg::from(14.875),
             },
-            Site {
+            ExecutionUnit {
                 id: 3898947,
                 lon: GeoDeg::from(12.2919),
                 lat: GeoDeg::from(14.7917),
             },
-            Site {
+            ExecutionUnit {
                 id: 3898948,
                 lon: GeoDeg::from(12.3752),
                 lat: GeoDeg::from(14.7917),
             },
-            Site {
+            ExecutionUnit {
                 id: 3898949,
                 lon: GeoDeg::from(12.4585),
                 lat: GeoDeg::from(14.7917),
             },
-            Site {
+            ExecutionUnit {
                 id: 3898975,
                 lon: GeoDeg::from(14.6243),
                 lat: GeoDeg::from(14.7917),
             },
-            Site {
+            ExecutionUnit {
                 id: 3898976,
                 lon: GeoDeg::from(14.7076),
                 lat: GeoDeg::from(14.7917),
             },
-            Site {
+            ExecutionUnit {
                 id: 3903264,
                 lon: GeoDeg::from(12.042),
                 lat: GeoDeg::from(14.7084),
             },
-            Site {
+            ExecutionUnit {
                 id: 3903265,
                 lon: GeoDeg::from(12.1253),
                 lat: GeoDeg::from(14.7084),
             },
-            Site {
+            ExecutionUnit {
                 id: 3903266,
                 lon: GeoDeg::from(12.2086),
                 lat: GeoDeg::from(14.7084),
             },
-            Site {
+            ExecutionUnit {
                 id: 3903267,
                 lon: GeoDeg::from(12.2919),
                 lat: GeoDeg::from(14.7084),
             },
-            Site {
+            ExecutionUnit {
                 id: 3903268,
                 lon: GeoDeg::from(12.3752),
                 lat: GeoDeg::from(14.7084),
             },
-            Site {
+            ExecutionUnit {
                 id: 3903269,
                 lon: GeoDeg::from(12.4585),
                 lat: GeoDeg::from(14.7084),
             },
-            Site {
+            ExecutionUnit {
                 id: 3903271,
                 lon: GeoDeg::from(12.6251),
                 lat: GeoDeg::from(14.7084),
             },
-            Site {
+            ExecutionUnit {
                 id: 3903273,
                 lon: GeoDeg::from(12.7917),
                 lat: GeoDeg::from(14.7084),
             },
-            Site {
+            ExecutionUnit {
                 id: 3903274,
                 lon: GeoDeg::from(12.875),
                 lat: GeoDeg::from(14.7084),
             },
-            Site {
+            ExecutionUnit {
                 id: 3903279,
                 lon: GeoDeg::from(13.2915),
                 lat: GeoDeg::from(14.7084),
             },
-            Site {
+            ExecutionUnit {
                 id: 3903280,
                 lon: GeoDeg::from(13.3748),
                 lat: GeoDeg::from(14.7084),
             },
-            Site {
+            ExecutionUnit {
                 id: 3903284,
                 lon: GeoDeg::from(13.708),
                 lat: GeoDeg::from(14.7084),
             },
-            Site {
+            ExecutionUnit {
                 id: 3903286,
                 lon: GeoDeg::from(13.8746),
                 lat: GeoDeg::from(14.7084),
             },
-            Site {
+            ExecutionUnit {
                 id: 3903293,
                 lon: GeoDeg::from(14.4577),
                 lat: GeoDeg::from(14.7084),
@@ -339,15 +337,15 @@ mod tests {
         let mut max_lat: f32 = -90.0;
 
         let mut i = 0;
-        for site in generator {
+        for domain in generator {
             if i < len {
-                assert_eq!(site, expected[i]);
+                assert_eq!(domain, expected[i]);
             }
 
-            min_lon = min_lon.min(site.lon.as_f32());
-            max_lon = max_lon.max(site.lon.as_f32());
-            min_lat = min_lat.min(site.lat.as_f32());
-            max_lat = max_lat.max(site.lat.as_f32());
+            min_lon = min_lon.min(domain.lon.as_f32());
+            max_lon = max_lon.max(domain.lon.as_f32());
+            min_lat = min_lat.min(domain.lat.as_f32());
+            max_lat = max_lat.max(domain.lat.as_f32());
             i += 1;
         }
 

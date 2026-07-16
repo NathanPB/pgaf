@@ -1,34 +1,33 @@
 use pgaf_sdk::config::RunConfig;
 use pgaf_sdk::context::Context;
-use pgaf_sdk::site::{Site, SiteGenerator};
+use pgaf_sdk::domain::{DomainGenerator, ExecutionUnit};
 
-/// Given a site source configuration, ContextGenerator will generate a sequence of Contexts to be processed.
+/// Generates a sequence of [`Context`]s to be processed.
 ///
-/// The order of the generated Contexts is determined by a permutation over the runs and the sites iterator,
-/// prioritizing outputting all the runs before moving to the next site.
+/// The order of the generated [`Context`]s is determined by a permutation over the runs and the domain
+/// generator, prioritizing outputting all the runs before moving to the next [`ExecutionUnit`].
 ///
-/// TODO: decouple from config. Maybe create a registry for SiteGenerators (abstract factory?) and couple it with config instead. Will allow for plugin extensibility later.
+/// TODO: decouple from config. Maybe create a registry for [`DomainGenerator`] (abstract factory?) and couple it with config instead. Will allow for plugin extensibility later.
 pub struct ContextGenerator {
-    site_generator: Box<dyn SiteGenerator>,
-    curr_site: Option<Site>,
-    site_sample_size: Option<usize>,
-    current_site_count: usize,
+    domain_generator: Box<dyn DomainGenerator>,
+    curr_unit: Option<ExecutionUnit>,
+    sample_size: Option<usize>,
+    current_count: usize,
     runs: Vec<RunConfig>,
     current_run: usize,
 }
 
 impl ContextGenerator {
-    /// Creates a new ContextGenerator from a SitesSource configuration and a vector of RunConfig.
     pub fn new(
-        site_generator: Box<dyn SiteGenerator>,
+        domain_generator: Box<dyn DomainGenerator>,
         runs: Vec<RunConfig>,
-        site_sample_size: Option<usize>,
+        sample_size: Option<usize>,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         Ok(ContextGenerator {
-            site_generator,
-            curr_site: None,
-            site_sample_size,
-            current_site_count: 0,
+            domain_generator,
+            curr_unit: None,
+            sample_size,
+            current_count: 0,
             runs,
             current_run: 0,
         })
@@ -39,27 +38,27 @@ impl Iterator for ContextGenerator {
     type Item = Context;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(sample_size) = self.site_sample_size
-            && self.current_site_count >= sample_size
+        if let Some(sample_size) = self.sample_size
+            && self.current_count >= sample_size
         {
             return None;
         }
 
         if self.current_run >= self.runs.len() {
             self.current_run = 0;
-            self.curr_site = None;
+            self.curr_unit = None;
         }
 
-        if self.curr_site.is_none() {
-            self.curr_site = self.site_generator.next();
-            self.curr_site.as_ref()?;
+        if self.curr_unit.is_none() {
+            self.curr_unit = self.domain_generator.next();
+            self.curr_unit.as_ref()?;
         }
 
         let run = self.runs[self.current_run].clone();
         self.current_run += 1;
-        self.current_site_count += 1;
+        self.current_count += 1;
         Some(Context {
-            site: self.curr_site.clone()?,
+            unit: self.curr_unit.clone()?,
             run,
         })
     }
@@ -74,7 +73,7 @@ mod tests {
 
     #[test]
     fn context_gen() {
-        let site_src: Box<dyn SiteGenerator> = Box::new((0..200).map(|id| Site {
+        let domain_gen: Box<dyn DomainGenerator> = Box::new((0..200).map(|id| ExecutionUnit {
             id,
             lon: GeoDeg::from(0.0),
             lat: GeoDeg::from(0.0),
@@ -93,11 +92,11 @@ mod tests {
             },
         ];
 
-        let generator = ContextGenerator::new(site_src, runs, None).unwrap();
+        let generator = ContextGenerator::new(domain_gen, runs, None).unwrap();
         let mut max = i32::MIN;
 
         for (i, ctx) in generator.enumerate() {
-            assert_eq!((i / 2) as i32, ctx.site.id);
+            assert_eq!((i / 2) as i32, ctx.unit.id);
 
             if i % 2 == 0 {
                 assert_eq!(ctx.run.name, "r1");
@@ -105,7 +104,7 @@ mod tests {
                 assert_eq!(ctx.run.name, "r2");
             }
 
-            max = max.max(ctx.site.id);
+            max = max.max(ctx.unit.id);
         }
 
         assert_eq!(max, 199);
@@ -113,7 +112,7 @@ mod tests {
 
     #[test]
     fn test_sample_size() {
-        let site_src: Box<dyn SiteGenerator> = Box::new((0..200).map(|id| Site {
+        let domain_src: Box<dyn DomainGenerator> = Box::new((0..200).map(|id| ExecutionUnit {
             id,
             lon: GeoDeg::from(0.0),
             lat: GeoDeg::from(0.0),
@@ -125,7 +124,7 @@ mod tests {
             template: PathBuf::from("dummy"),
         }];
 
-        let generator = ContextGenerator::new(site_src, runs, Some(50)).unwrap();
+        let generator = ContextGenerator::new(domain_src, runs, Some(50)).unwrap();
         assert_eq!(generator.count(), 50);
     }
 }

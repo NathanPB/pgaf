@@ -92,9 +92,9 @@ impl PipelineData for Context {}
 mod tests {
     use super::*;
     use pgaf_sdk::data::GeoDeg;
+    use pgaf_sdk::domain::ExecutionUnit;
     use pgaf_sdk::function::{Driver, Function, FunctionDriver, FunctionRuntimeError};
     use pgaf_sdk::registry::FunctionDriverResource;
-    use pgaf_sdk::site::Site;
     use std::error::Error;
     use std::path::PathBuf;
     use std::sync::LazyLock;
@@ -229,7 +229,7 @@ mod tests {
     #[test]
     fn evaluate_context_lookup() {
         let ctx = Context {
-            site: Site {
+            unit: ExecutionUnit {
                 id: 0,
                 lon: GeoDeg::from(15.222),
                 lat: GeoDeg::from(-15.23133),

@@ -32,7 +32,7 @@ impl Processor for UnbatchedProcessor {
                     None => {
                         panic!(
                             "Failed to render template for context ID {} ({}, {}): Template file name not registered",
-                            ctx.site.id, ctx.site.lon, ctx.site.lat
+                            ctx.unit.id, ctx.unit.lon, ctx.unit.lat
                         );
                     }
                 };
@@ -44,7 +44,7 @@ impl Processor for UnbatchedProcessor {
                 if let Err(err) = std::fs::write(template_path, rendered) {
                     panic!(
                         "Failed to render template for context ID {} ({}, {}): {}",
-                        ctx.site.id, ctx.site.lon, ctx.site.lat, err
+                        ctx.unit.id, ctx.unit.lon, ctx.unit.lat, err
                     );
                 }
             })

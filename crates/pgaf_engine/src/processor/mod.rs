@@ -34,12 +34,12 @@ pub struct ProcessingBuilder<'a> {
 
 impl<'a> ProcessingBuilder<'a> {
     pub fn build(self) -> Result<Processing<Context>, Box<dyn std::error::Error>> {
-        let sitegen = self.config.sites.build()?;
+        let domaingen = self.config.domain.build()?;
 
         let ctx_gen = ContextGenerator::new(
-            Box::new(sitegen),
+            Box::new(domaingen),
             self.config.runs.clone(),
-            self.config.sites.sample_size,
+            self.config.domain.sample_size,
         )?;
 
         let processor = UnbatchedProcessor {

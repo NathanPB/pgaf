@@ -93,7 +93,7 @@ mod tests {
     use super::*;
     use crate::config::RunConfig;
     use crate::data::GeoDeg;
-    use crate::site::Site;
+    use crate::domain::ExecutionUnit;
     use serde::Deserialize;
     use std::path::PathBuf;
 
@@ -117,7 +117,7 @@ mod tests {
 
     fn make_ctx_with_extra(extra: HashMap<String, ContextValue>) -> Context {
         Context {
-            site: Site {
+            unit: ExecutionUnit {
                 id: 1,
                 lon: GeoDeg::from(0.0),
                 lat: GeoDeg::from(0.0),

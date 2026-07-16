@@ -19,7 +19,7 @@ use std::{
 
 pub use identifier::{PublicIdentifier, PublicIdentifierError, PublicIdentifierSeed};
 pub use namespace::Namespace;
-pub use resources::{FunctionDriverResource, SiteGeneratorDriverResource};
+pub use resources::{DomainGeneratorDriverResource, FunctionDriverResource};
 pub use serialize::{DeserializedResource, ResourceSeed};
 
 /// Validates if the given string is a valid name/id for a [`Namespace`] or [`super::PublicIdentifier`].
@@ -144,11 +144,11 @@ impl<T: Resource> Registry<T> {
 /// It also manages claiming of [`Namespace`]s (see [`Registries::claim_namespace`]).
 ///
 /// [`Registries`] must expose mutable and non-mutable access to the [`Registry`]s inside it via
-///   functions like [`Registries::regmut_sitegen_drivers`] (``&mut``) and [`Registries::reg_sitegen_drivers`] (``&``).
+///   functions like [`Registries::regmut_domaingen_drivers`] (``&mut``) and [`Registries::reg_domaingen_drivers`] (``&``).
 #[derive(Default)]
 pub struct Registries {
     namespaces: HashSet<Namespace>,
-    reg_sitegen_drivers: Registry<SiteGeneratorDriverResource>,
+    reg_domaingen_drivers: Registry<DomainGeneratorDriverResource>,
     reg_function_drivers: Registry<FunctionDriverResource>,
 }
 
@@ -172,12 +172,12 @@ impl Registries {
         Ok(namespace)
     }
 
-    pub fn reg_sitegen_drivers(&self) -> &Registry<SiteGeneratorDriverResource> {
-        &self.reg_sitegen_drivers
+    pub fn reg_domaingen_drivers(&self) -> &Registry<DomainGeneratorDriverResource> {
+        &self.reg_domaingen_drivers
     }
 
-    pub fn regmut_sitegen_drivers(&mut self) -> &mut Registry<SiteGeneratorDriverResource> {
-        &mut self.reg_sitegen_drivers
+    pub fn regmut_domaingen_drivers(&mut self) -> &mut Registry<DomainGeneratorDriverResource> {
+        &mut self.reg_domaingen_drivers
     }
 
     pub fn reg_function_drivers(&self) -> &Registry<FunctionDriverResource> {

@@ -1,38 +1,39 @@
 use pgaf_sdk::registry::{
-    FunctionDriverResource, Namespace, Registries, Registry, RegistryError,
-    SiteGeneratorDriverResource,
+    DomainGeneratorDriverResource, FunctionDriverResource, Namespace, Registries, Registry,
+    RegistryError,
 };
 
+mod domain;
 mod function;
-mod site;
 
 pub fn init(namespace: &Namespace, registries: &mut Registries) -> Result<(), RegistryError> {
-    register_sitegen_drivers(namespace, registries.regmut_sitegen_drivers())?;
+    register_domaingen_drivers(namespace, registries.regmut_domaingen_drivers())?;
     register_function_drivers(namespace, registries.regmut_function_drivers())?;
     Ok(())
 }
 
-fn register_sitegen_drivers(
-    _namespace: &Namespace,
-    _registry: &mut Registry<SiteGeneratorDriverResource>,
+#[allow(unused_variables)]
+fn register_domaingen_drivers(
+    namespace: &Namespace,
+    registry: &mut Registry<DomainGeneratorDriverResource>,
 ) -> Result<(), RegistryError> {
     #[cfg(feature = "gdal")]
     {
-        let driver = crate::site::vector::VECTOR_DRIVER;
+        let driver = crate::domain::vector::VECTOR_DRIVER;
         registry.register(
             namespace,
             "vector",
-            SiteGeneratorDriverResource(driver.clone().coerce_to_dynamic()),
+            DomainGeneratorDriverResource(driver.clone().coerce_to_dynamic()),
         )?;
     }
 
     #[cfg(feature = "gdal")]
     {
-        let driver = crate::site::raster::RASTER_DRIVER;
+        let driver = crate::domain::raster::RASTER_DRIVER;
         registry.register(
             namespace,
             "raster",
-            SiteGeneratorDriverResource(driver.clone().coerce_to_dynamic()),
+            DomainGeneratorDriverResource(driver.clone().coerce_to_dynamic()),
         )?;
     }
 

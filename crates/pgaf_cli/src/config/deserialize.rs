@@ -4,10 +4,10 @@ use std::marker::PhantomData;
 use std::path::PathBuf;
 
 use pgaf_engine::context::value::ContextValueDeserializeSeed;
-use pgaf_sdk::config::{Config, RunConfig, SiteSourceConfig};
+use pgaf_sdk::config::{Config, DomainConfig, RunConfig};
 use pgaf_sdk::context::ContextValue;
 use pgaf_sdk::registry::{
-    PublicIdentifierSeed, Registries, ResourceSeed, SiteGeneratorDriverResource,
+    DomainGeneratorDriverResource, PublicIdentifierSeed, Registries, ResourceSeed,
 };
 use serde::de::{DeserializeSeed, MapAccess, SeqAccess, Visitor};
 use serde_json::value::{Map, Value};
@@ -63,8 +63,8 @@ impl<'de> DeserializeSeed<'de> for ConfigDeserializeSeed<'de, Config> {
     }
 }
 
-impl<'de> DeserializeSeed<'de> for ConfigDeserializeSeed<'de, SiteSourceConfig> {
-    type Value = SiteSourceConfig;
+impl<'de> DeserializeSeed<'de> for ConfigDeserializeSeed<'de, DomainConfig> {
+    type Value = DomainConfig;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
@@ -96,15 +96,15 @@ impl<'de> DeserializeSeed<'de> for ConfigDeserializeSeed<'de, RunConfig> {
     }
 }
 
-impl<'de> DeserializeSeed<'de> for ConfigDeserializeSeed<'de, SiteGeneratorDriverResource> {
-    type Value = SiteGeneratorDriverResource;
+impl<'de> DeserializeSeed<'de> for ConfigDeserializeSeed<'de, DomainGeneratorDriverResource> {
+    type Value = DomainGeneratorDriverResource;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
         ResourceSeed {
-            registry: self.registries.reg_sitegen_drivers(),
+            registry: self.registries.reg_domaingen_drivers(),
             id_seed: PublicIdentifierSeed {
                 default_namespace: self.default_namespace,
             },
@@ -140,50 +140,49 @@ impl<'de> Visitor<'de> for ConfigVisitor<'de, Config> {
     where
         A: MapAccess<'de>,
     {
-        let mut sites: Option<SiteSourceConfig> = None;
+        let mut domain: Option<DomainConfig> = None;
         let mut runs = None;
 
         while let Some(key) = map.next_key::<String>()? {
             match key.as_str() {
-                "sites" => {
-                    sites = Some(map.next_value_seed(self.seed.clone().cast::<SiteSourceConfig>())?)
+                "domain" => {
+                    domain = Some(map.next_value_seed(self.seed.clone().cast::<DomainConfig>())?)
                 }
                 "runs" => {
                     runs = Some(map.next_value_seed(self.seed.clone().cast::<Vec<RunConfig>>())?)
                 }
-                _ => return Err(serde::de::Error::unknown_field(&key, &["sites", "runs"])),
+                _ => return Err(serde::de::Error::unknown_field(&key, &["domain", "runs"])),
             }
         }
 
-        let sites = sites.ok_or_else(|| serde::de::Error::missing_field("sites"))?;
-        let runs = runs.ok_or_else(|| serde::de::Error::missing_field("runs"))?;
-
-        Ok(Config { sites, runs })
+        Ok(Config {
+            domain: domain.ok_or_else(|| serde::de::Error::missing_field("domain"))?,
+            runs: runs.ok_or_else(|| serde::de::Error::missing_field("runs"))?,
+        })
     }
 }
 
-impl<'de> Visitor<'de> for ConfigVisitor<'de, SiteSourceConfig> {
-    type Value = SiteSourceConfig;
+impl<'de> Visitor<'de> for ConfigVisitor<'de, DomainConfig> {
+    type Value = DomainConfig;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("a SiteSourceConfig struct")
+        formatter.write_str("a DomainConfig struct")
     }
 
     fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
     where
         A: MapAccess<'de>,
     {
-        let mut resource: Option<SiteGeneratorDriverResource> = None;
+        let mut resource: Option<DomainGeneratorDriverResource> = None;
         let mut sample_size = None;
         let mut args: Map<String, serde_json::Value> = Map::new();
 
         while let Some(key) = map.next_key::<String>()? {
             match key.as_str() {
                 "type" => {
-                    resource =
-                        Some(map.next_value_seed(
-                            self.seed.clone().cast::<SiteGeneratorDriverResource>(),
-                        )?)
+                    resource = Some(map.next_value_seed(
+                        self.seed.clone().cast::<DomainGeneratorDriverResource>(),
+                    )?)
                 }
                 "sample_size" => sample_size = Some(map.next_value()?),
                 _ => {
@@ -193,7 +192,7 @@ impl<'de> Visitor<'de> for ConfigVisitor<'de, SiteSourceConfig> {
         }
 
         let resource = resource.ok_or_else(|| serde::de::Error::missing_field("type"))?;
-        Ok(SiteSourceConfig {
+        Ok(DomainConfig {
             driver: resource.0,
             sample_size,
             args: Value::Object(args),
