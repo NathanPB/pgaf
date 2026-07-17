@@ -4,11 +4,13 @@ use pgaf::workdir;
 use pgaf_engine::processor::ProcessingBuilder;
 use pgaf_sdk::registry;
 
+static STD_NAMESPACE: &str = "std";
+
 fn main() {
     let mut registries = registry::Registries::default();
     let namespace = registries
-        .claim_namespace("std")
-        .expect("Failed to claim 'std' namespace.");
+        .claim_namespace(STD_NAMESPACE)
+        .unwrap_or_else(|_| panic!("Failed to claim '{STD_NAMESPACE}' namespace"));
 
     pgaf_std::init(&namespace, &mut registries).expect("Failed to initialize stdlib.");
     println!("Initialized own resources on namespace \"{}\"", namespace);
@@ -47,6 +49,8 @@ fn main() {
         workers: args.workers,
         pipeline_buffer_size: args.pipeline_buffer_size,
         workdir,
+        registries: &registries,
+        std_namespace: STD_NAMESPACE.to_string(),
     }
     .build()
     .unwrap();

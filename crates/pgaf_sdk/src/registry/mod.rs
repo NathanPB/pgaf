@@ -19,7 +19,9 @@ use std::{
 
 pub use identifier::{PublicIdentifier, PublicIdentifierError, PublicIdentifierSeed};
 pub use namespace::Namespace;
-pub use resources::{DomainGeneratorDriverResource, FunctionDriverResource};
+pub use resources::{
+    DomainGeneratorDriverResource, FunctionDriverResource, PipelineStepTypeDriverResource,
+};
 pub use serialize::{DeserializedResource, ResourceSeed};
 
 /// Validates if the given string is a valid name/id for a [`Namespace`] or [`super::PublicIdentifier`].
@@ -150,6 +152,7 @@ pub struct Registries {
     namespaces: HashSet<Namespace>,
     reg_domaingen_drivers: Registry<DomainGeneratorDriverResource>,
     reg_function_drivers: Registry<FunctionDriverResource>,
+    reg_pipelinestep_drivers: Registry<PipelineStepTypeDriverResource>,
 }
 
 impl Registries {
@@ -176,6 +179,10 @@ impl Registries {
         &self.reg_domaingen_drivers
     }
 
+    pub fn reg_pipelinestep_drivers(&self) -> &Registry<PipelineStepTypeDriverResource> {
+        &self.reg_pipelinestep_drivers
+    }
+
     pub fn regmut_domaingen_drivers(&mut self) -> &mut Registry<DomainGeneratorDriverResource> {
         &mut self.reg_domaingen_drivers
     }
@@ -186,6 +193,10 @@ impl Registries {
 
     pub fn regmut_function_drivers(&mut self) -> &mut Registry<FunctionDriverResource> {
         &mut self.reg_function_drivers
+    }
+
+    pub fn regmut_pipelinestep_drivers(&mut self) -> &mut Registry<PipelineStepTypeDriverResource> {
+        &mut self.reg_pipelinestep_drivers
     }
 }
 

@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 use std::path::PathBuf;
 
 use pgaf_engine::context::value::ContextValueDeserializeSeed;
-use pgaf_sdk::config::{Config, DomainConfig, RunConfig};
+use pgaf_sdk::config::{Config, DomainConfig, PipelineStep, RunConfig};
 use pgaf_sdk::context::ContextValue;
 use pgaf_sdk::registry::{
     DomainGeneratorDriverResource, PublicIdentifierSeed, Registries, ResourceSeed,
@@ -114,6 +114,24 @@ impl<'de> DeserializeSeed<'de> for ConfigDeserializeSeed<'de, DomainGeneratorDri
     }
 }
 
+impl<'de> DeserializeSeed<'de> for ConfigDeserializeSeed<'de, pgaf_sdk::pipeline::Driver> {
+    type Value = pgaf_sdk::pipeline::Driver;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        ResourceSeed {
+            registry: self.registries.reg_pipelinestep_drivers(),
+            id_seed: PublicIdentifierSeed {
+                default_namespace: self.default_namespace,
+            },
+        }
+        .deserialize(deserializer)
+        .map(|r| r.resource.0)
+    }
+}
+
 impl<'de> DeserializeSeed<'de> for ConfigDeserializeSeed<'de, ContextValue> {
     type Value = ContextValue;
 
@@ -129,11 +147,33 @@ impl<'de> DeserializeSeed<'de> for ConfigDeserializeSeed<'de, ContextValue> {
     }
 }
 
+impl<'de> DeserializeSeed<'de> for ConfigDeserializeSeed<'de, PipelineStep> {
+    type Value = PipelineStep;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        deserializer.deserialize_map(ConfigVisitor { seed: self })
+    }
+}
+
+impl<'de> DeserializeSeed<'de> for ConfigDeserializeSeed<'de, Vec<PipelineStep>> {
+    type Value = Vec<PipelineStep>;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        deserializer.deserialize_seq(ConfigVisitor { seed: self })
+    }
+}
+
 impl<'de> Visitor<'de> for ConfigVisitor<'de, Config> {
     type Value = Config;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("a Config struct")
+        formatter.write_str("{ domain: {...}, pipeline: {...}[], runs: {...}[] }")
     }
 
     fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
@@ -141,6 +181,7 @@ impl<'de> Visitor<'de> for ConfigVisitor<'de, Config> {
         A: MapAccess<'de>,
     {
         let mut domain: Option<DomainConfig> = None;
+        let mut pipeline: Option<Vec<PipelineStep>> = None;
         let mut runs = None;
 
         while let Some(key) = map.next_key::<String>()? {
@@ -148,15 +189,25 @@ impl<'de> Visitor<'de> for ConfigVisitor<'de, Config> {
                 "domain" => {
                     domain = Some(map.next_value_seed(self.seed.clone().cast::<DomainConfig>())?)
                 }
+                "pipeline" => {
+                    pipeline =
+                        Some(map.next_value_seed(self.seed.clone().cast::<Vec<PipelineStep>>())?)
+                }
                 "runs" => {
                     runs = Some(map.next_value_seed(self.seed.clone().cast::<Vec<RunConfig>>())?)
                 }
-                _ => return Err(serde::de::Error::unknown_field(&key, &["domain", "runs"])),
+                _ => {
+                    return Err(serde::de::Error::unknown_field(
+                        &key,
+                        &["domain", "pipeline", "runs"],
+                    ));
+                }
             }
         }
 
         Ok(Config {
             domain: domain.ok_or_else(|| serde::de::Error::missing_field("domain"))?,
+            pipeline: pipeline.ok_or_else(|| serde::de::Error::missing_field("pipeline"))?,
             runs: runs.ok_or_else(|| serde::de::Error::missing_field("runs"))?,
         })
     }
@@ -265,5 +316,65 @@ impl<'de> Visitor<'de> for ConfigVisitor<'de, RunConfig> {
             template,
             extra,
         })
+    }
+}
+
+impl<'de> Visitor<'de> for ConfigVisitor<'de, PipelineStep> {
+    type Value = PipelineStep;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("{name: string, type: string, args: any}")
+    }
+
+    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        let mut name: Option<String> = None;
+        let mut driver: Option<pgaf_sdk::pipeline::Driver> = None;
+        let mut args: Option<serde_json::Value> = None;
+
+        while let Some(key) = map.next_key::<String>()? {
+            match key.as_str() {
+                "name" => name = Some(map.next_value()?),
+                "type" => {
+                    let seed = self.seed.clone().cast::<pgaf_sdk::pipeline::Driver>();
+                    driver = Some(map.next_value_seed(seed)?)
+                }
+                "args" => args = Some(map.next_value()?),
+                _ => {
+                    return Err(serde::de::Error::unknown_field(
+                        &key,
+                        &["name", "type", "args"],
+                    ));
+                }
+            }
+        }
+
+        Ok(PipelineStep {
+            name: name.ok_or_else(|| serde::de::Error::missing_field("name"))?,
+            driver: driver.ok_or_else(|| serde::de::Error::missing_field("type"))?,
+            args: args.ok_or_else(|| serde::de::Error::missing_field("args"))?,
+        })
+    }
+}
+
+impl<'de> Visitor<'de> for ConfigVisitor<'de, Vec<PipelineStep>> {
+    type Value = Vec<PipelineStep>;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("{...}[]")
+    }
+
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {
+        let mut steps = Vec::with_capacity(seq.size_hint().unwrap_or(0));
+        while let Some(step) = seq.next_element_seed(self.seed.clone().cast::<PipelineStep>())? {
+            steps.push(step);
+        }
+
+        Ok(steps)
     }
 }

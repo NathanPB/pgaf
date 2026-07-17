@@ -26,21 +26,21 @@ pub fn create_pipeline_from_config<O: PipelineData + 'static>(
     _config: &Config,
     workers: usize,
     processor: impl Processor<Output = O> + 'static,
-) -> Result<Pipelines<O>, Box<dyn Error>> {
+) -> Result<PipelineKind<O>, Box<dyn Error>> {
     let worker_count = match workers {
         0 => num_cpus::get(),
         workers => workers,
     };
 
-    let pipeline: Pipelines<O> = match workers {
-        1 => Pipelines::Sync(SyncPipeline::new(processor)),
-        _ => Pipelines::Threaded(ThreadedPipeline::new(processor, worker_count)?),
+    let pipeline: PipelineKind<O> = match workers {
+        1 => PipelineKind::Sync(SyncPipeline::new(processor)),
+        _ => PipelineKind::Threaded(ThreadedPipeline::new(processor, worker_count)?),
     };
 
     Ok(pipeline)
 }
 
-pub enum Pipelines<T: PipelineData> {
+pub enum PipelineKind<T: PipelineData> {
     Sync(SyncPipeline<T>),
     Threaded(ThreadedPipeline<T>),
 }

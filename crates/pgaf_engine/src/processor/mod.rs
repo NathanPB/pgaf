@@ -1,10 +1,12 @@
 pub mod unbatched;
 
 use crate::context::generator::ContextGenerator;
-use crate::pipeline::{Pipeline, PipelineData, Pipelines, create_pipeline_from_config};
+use crate::context::value::ContextValueDeserializeSeed;
+use crate::pipeline::{Pipeline, PipelineData, PipelineKind, create_pipeline_from_config};
 use crate::template::TemplateEngine;
 use pgaf_sdk::config::Config;
 use pgaf_sdk::context::Context;
+use pgaf_sdk::registry::Registries;
 use std::error::Error;
 use std::path::PathBuf;
 use std::sync::{
@@ -30,6 +32,8 @@ pub struct ProcessingBuilder<'a> {
     pub workers: usize,
     pub pipeline_buffer_size: usize,
     pub workdir: PathBuf,
+    pub registries: &'a Registries,
+    pub std_namespace: String,
 }
 
 impl<'a> ProcessingBuilder<'a> {
@@ -42,10 +46,11 @@ impl<'a> ProcessingBuilder<'a> {
             self.config.domain.sample_size,
         )?;
 
-        let processor = UnbatchedProcessor {
-            workdir: self.workdir,
+        let deserializer = ContextValueDeserializeSeed {
+            registries: self.registries,
+            default_namespace: self.std_namespace,
         };
-
+        let processor = UnbatchedProcessor::new(self.workdir, self.config, &deserializer);
         let pipeline = create_pipeline_from_config(self.config, self.workers, processor)?;
 
         let mut templates = TemplateEngine::default();
@@ -63,7 +68,7 @@ impl<'a> ProcessingBuilder<'a> {
 }
 
 pub struct Processing<T: PipelineData> {
-    pipeline: Pipelines<T>,
+    pipeline: PipelineKind<T>,
     ctx_gen: ContextGenerator,
     templates: TemplateEngine,
     buffer_size: usize,
@@ -73,8 +78,8 @@ impl<T: PipelineData + 'static> Processing<T> {
     pub fn start(self) {
         let ctx_gen = self.ctx_gen;
         let pipeline: Arc<dyn Pipeline<Output = T>> = match self.pipeline {
-            Pipelines::Sync(pipeline) => Arc::new(pipeline),
-            Pipelines::Threaded(pipeline) => Arc::new(pipeline),
+            PipelineKind::Sync(pipeline) => Arc::new(pipeline),
+            PipelineKind::Threaded(pipeline) => Arc::new(pipeline),
         };
 
         thread::scope(|s| {

@@ -7,6 +7,7 @@ use pgaf_sdk::registry::{PublicIdentifier, Registries};
 use serde::de::DeserializeSeed;
 use serde::{Deserialize, Deserializer};
 
+#[derive(Clone)]
 pub struct ContextValueDeserializeSeed<'a> {
     pub default_namespace: String,
     pub registries: &'a Registries,

@@ -1,14 +1,16 @@
 use pgaf_sdk::registry::{
-    DomainGeneratorDriverResource, FunctionDriverResource, Namespace, Registries, Registry,
-    RegistryError,
+    DomainGeneratorDriverResource, FunctionDriverResource, Namespace,
+    PipelineStepTypeDriverResource, Registries, Registry, RegistryError,
 };
 
 mod domain;
 mod function;
+mod pipeline;
 
 pub fn init(namespace: &Namespace, registries: &mut Registries) -> Result<(), RegistryError> {
     register_domaingen_drivers(namespace, registries.regmut_domaingen_drivers())?;
     register_function_drivers(namespace, registries.regmut_function_drivers())?;
+    register_pipelinestep_drivers(namespace, registries.regmut_pipelinestep_drivers())?;
     Ok(())
 }
 
@@ -50,6 +52,31 @@ fn register_function_drivers(
         namespace,
         "greet",
         FunctionDriverResource(greet::GREET_DRIVER.clone()),
+    )?;
+
+    Ok(())
+}
+
+fn register_pipelinestep_drivers(
+    namespace: &Namespace,
+    registry: &mut Registry<PipelineStepTypeDriverResource>,
+) -> Result<(), RegistryError> {
+    use crate::pipeline::*;
+
+    registry.register(
+        namespace,
+        "filter",
+        PipelineStepTypeDriverResource(filter::FILTER_DRIVER.clone()),
+    )?;
+    registry.register(
+        namespace,
+        "map",
+        PipelineStepTypeDriverResource(map::MAP_DRIVER.clone()),
+    )?;
+    registry.register(
+        namespace,
+        "unset",
+        PipelineStepTypeDriverResource(unset::UNSET_DRIVER.clone()),
     )?;
 
     Ok(())
