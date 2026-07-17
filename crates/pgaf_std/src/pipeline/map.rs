@@ -32,26 +32,8 @@ pub static MAP_DRIVER: LazyLock<Driver> = LazyLock::new(|| {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pgaf_sdk::config::RunConfig;
-    use pgaf_sdk::data::GeoDeg;
-    use pgaf_sdk::domain::ExecutionUnit;
+    use crate::pipeline::make_ctx;
     use pgaf_sdk::pipeline::PipelineStepTypeArgs;
-    use std::path::PathBuf;
-
-    fn make_ctx(id: i64) -> Context {
-        Context {
-            unit: ExecutionUnit {
-                id: id.into(),
-                lon: GeoDeg::from(0.0),
-                lat: GeoDeg::from(0.0),
-            },
-            run: RunConfig {
-                name: "test".into(),
-                extra: HashMap::new(),
-                template: PathBuf::from("dummy"),
-            },
-        }
-    }
 
     #[test]
     fn upserts_values() {

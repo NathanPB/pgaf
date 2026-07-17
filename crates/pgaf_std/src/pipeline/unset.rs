@@ -43,27 +43,9 @@ pub static UNSET_DRIVER: LazyLock<Driver> = LazyLock::new(|| {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pgaf_sdk::config::RunConfig;
+    use crate::pipeline::make_ctx_with_extras;
     use pgaf_sdk::context::ContextValue;
-    use pgaf_sdk::data::GeoDeg;
-    use pgaf_sdk::domain::ExecutionUnit;
     use pgaf_sdk::pipeline::PipelineStepTypeArgs;
-    use std::path::PathBuf;
-
-    fn make_ctx_with_extras(id: i64, extras: HashMap<String, ContextValue>) -> Context {
-        Context {
-            unit: ExecutionUnit {
-                id: id.into(),
-                lon: GeoDeg::from(0.0),
-                lat: GeoDeg::from(0.0),
-            },
-            run: RunConfig {
-                name: "test".into(),
-                extra: extras,
-                template: PathBuf::from("dummy"),
-            },
-        }
-    }
 
     fn prim(v: PrimitiveContextValue) -> ContextValue {
         ContextValue::Prim(v)

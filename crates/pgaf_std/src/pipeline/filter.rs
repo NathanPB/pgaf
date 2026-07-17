@@ -35,28 +35,9 @@ pub static FILTER_DRIVER: LazyLock<Driver> = LazyLock::new(|| {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pgaf_sdk::config::RunConfig;
+    use crate::pipeline::make_ctx;
     use pgaf_sdk::context::{ContextValue, PrimitiveContextValue};
-    use pgaf_sdk::data::GeoDeg;
-    use pgaf_sdk::domain::ExecutionUnit;
     use pgaf_sdk::pipeline::PipelineStepTypeArgs;
-    use std::collections::HashMap;
-    use std::path::PathBuf;
-
-    fn make_ctx(id: i64) -> Context {
-        Context {
-            unit: ExecutionUnit {
-                id: id.into(),
-                lon: GeoDeg::from(0.0),
-                lat: GeoDeg::from(0.0),
-            },
-            run: RunConfig {
-                name: "test".into(),
-                extra: HashMap::new(),
-                template: PathBuf::from("dummy"),
-            },
-        }
-    }
 
     fn prim(v: PrimitiveContextValue) -> ContextValue {
         ContextValue::Prim(v)
