@@ -17,7 +17,7 @@
         };
         pkgs-gdal = import nixpkgs-gdal38 { inherit system; };
         
-        rustToolchain = pkgs.rust-bin.nightly.latest.default;
+        rustToolchain = pkgs.rust-bin.stable.latest.default;
       in
       {
         devShells.default = pkgs.mkShell {
