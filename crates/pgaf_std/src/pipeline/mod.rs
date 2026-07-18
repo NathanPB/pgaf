@@ -1,6 +1,7 @@
 pub mod filter;
 pub mod map;
 pub mod unset;
+pub mod void;
 
 #[cfg(test)]
 fn make_ctx(id: i64) -> pgaf_sdk::context::Context {

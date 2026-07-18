@@ -68,15 +68,23 @@ fn register_pipelinestep_drivers(
         "filter",
         PipelineStepTypeDriverResource(filter::FILTER_DRIVER.clone()),
     )?;
+
     registry.register(
         namespace,
         "map",
         PipelineStepTypeDriverResource(map::MAP_DRIVER.clone()),
     )?;
+
     registry.register(
         namespace,
         "unset",
         PipelineStepTypeDriverResource(unset::UNSET_DRIVER.clone()),
+    )?;
+
+    registry.register(
+        namespace,
+        "void",
+        PipelineStepTypeDriverResource(void::VOID_DRIVER.clone()),
     )?;
 
     Ok(())
