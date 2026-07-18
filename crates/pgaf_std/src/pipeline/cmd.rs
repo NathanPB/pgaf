@@ -393,7 +393,10 @@ mod tests {
         let args = map_args([("cmd", str("false")), ("fail_non_zero", bool(true))]);
 
         let result: Vec<_> = CMD_DRIVER
-            .invoke(Arc::new(args), Box::new(vec![make_ctx(1), make_ctx(2)].into_iter()))
+            .invoke(
+                Arc::new(args),
+                Box::new(vec![make_ctx(1), make_ctx(2)].into_iter()),
+            )
             .collect();
 
         assert!(result.is_empty());

@@ -184,7 +184,9 @@ mod tests {
         args: PipelineStepTypeArgs,
         ctxs: Vec<Context>,
     ) -> Vec<Context> {
-        driver.invoke(Arc::new(args), Box::new(ctxs.into_iter())).collect()
+        driver
+            .invoke(Arc::new(args), Box::new(ctxs.into_iter()))
+            .collect()
     }
 
     // --- One ---
@@ -430,7 +432,9 @@ mod tests {
             PipelineStepTypeDriver::<FilterEvenIds, ()>::default().coerce_to_dynamic();
 
         let stream = driver_dup.invoke(
-            Arc::new(PipelineStepTypeArgs::One(prim(PrimitiveContextValue::Int(3)))),
+            Arc::new(PipelineStepTypeArgs::One(prim(PrimitiveContextValue::Int(
+                3,
+            )))),
             Box::new(ctxs.into_iter()),
         );
         let output: Vec<Context> = driver_filt

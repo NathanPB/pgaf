@@ -44,7 +44,10 @@ mod tests {
     fn null_passes_through() {
         let ctxs = vec![make_ctx(1), make_ctx(2)];
         let result: Vec<_> = VOID_DRIVER
-            .invoke(Arc::new(one(PrimitiveContextValue::Null)), Box::new(ctxs.into_iter()))
+            .invoke(
+                Arc::new(one(PrimitiveContextValue::Null)),
+                Box::new(ctxs.into_iter()),
+            )
             .collect();
         assert_eq!(result.len(), 2);
     }

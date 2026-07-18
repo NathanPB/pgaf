@@ -207,8 +207,8 @@ mod tests {
     use crate::pipeline::make_ctx_with_extras;
     use pgaf_sdk::context::{ContextValue, PrimitiveContextValue};
     use pgaf_sdk::pipeline::PipelineStepTypeArgs;
-    use std::sync::Arc;
     use std::collections::HashMap;
+    use std::sync::Arc;
 
     fn map_args(
         pairs: impl IntoIterator<Item = (&'static str, ContextValue)>,
