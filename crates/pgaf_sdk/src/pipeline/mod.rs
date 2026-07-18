@@ -89,14 +89,6 @@ fn invoker_impl<F: PipelineStepType<A>, A: DeserializeOwned + 'static>(
 #[derive(Clone, Debug)]
 pub struct Driver(InvokeFn);
 
-/// **WARNING:** [`PartialEq`] is implemented for [`Driver`] solely to fulfil a badly-placed `derive(PartialEq)`.
-/// This comparison always results in `true`.
-impl PartialEq for Driver {
-    fn eq(&self, _: &Self) -> bool {
-        true
-    }
-}
-
 impl Driver {
     /// Wraps `input` in a lazy adapter that deserializes args per item, then
     /// passes the typed stream to the step. Nothing is consumed until the

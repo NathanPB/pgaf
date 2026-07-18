@@ -19,34 +19,27 @@ fn register_domaingen_drivers(
     namespace: &Namespace,
     registry: &mut Registry<DomainGeneratorDriverResource>,
 ) -> Result<(), RegistryError> {
-    #[cfg(feature = "gdal")]
-    {
-        let driver = crate::domain::vector::VECTOR_DRIVER;
-        registry.register(
-            namespace,
-            "vector",
-            DomainGeneratorDriverResource(driver.clone().coerce_to_dynamic()),
-        )?;
-    }
+    use crate::domain::*;
 
     #[cfg(feature = "gdal")]
-    {
-        let driver = crate::domain::raster::RASTER_DRIVER;
-        registry.register(
-            namespace,
-            "raster",
-            DomainGeneratorDriverResource(driver.clone().coerce_to_dynamic()),
-        )?;
-    }
+    registry.register(
+        namespace,
+        "vector",
+        DomainGeneratorDriverResource(vector::VECTOR_DRIVER.clone()),
+    )?;
 
-    {
-        let driver = crate::domain::rect::RECTANGLE_DRIVER;
-        registry.register(
-            namespace,
-            "rect",
-            DomainGeneratorDriverResource(driver.clone().coerce_to_dynamic()),
-        )?;
-    }
+    #[cfg(feature = "gdal")]
+    registry.register(
+        namespace,
+        "raster",
+        DomainGeneratorDriverResource(raster::RASTER_DRIVER.clone()),
+    )?;
+
+    registry.register(
+        namespace,
+        "rect",
+        DomainGeneratorDriverResource(rect::RECT_DRIVER.clone()),
+    )?;
 
     Ok(())
 }

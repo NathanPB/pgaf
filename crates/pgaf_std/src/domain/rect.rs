@@ -1,7 +1,7 @@
 use pgaf_sdk::data::GeoDeg;
-use pgaf_sdk::domain::{DomainGeneratorDriver, ExecutionUnit, UnitId};
+use pgaf_sdk::domain::{DomainGeneratorCreate, DomainGeneratorDriverTyped, ExecutionUnit, UnitId};
 use serde::Deserialize;
-use std::sync::{Arc, LazyLock};
+use std::sync::LazyLock;
 use validator::Validate;
 
 /// A synthetic domain generator that yields a regular grid of [`ExecutionUnit`]s within a bounding box.
@@ -72,11 +72,21 @@ impl Iterator for RectDomainGenerator {
     }
 }
 
-pub const RECTANGLE_DRIVER: LazyLock<
-    DomainGeneratorDriver<RectDomainGenerator, RectDomainGeneratorConfig>,
-> = LazyLock::new(|| DomainGeneratorDriver {
-    create: Arc::new(|c: RectDomainGeneratorConfig| Ok(RectDomainGenerator::new(c))),
-    config_deserializer: Arc::new(serde_json::from_value),
+pub struct RectDriver;
+
+impl DomainGeneratorCreate<RectDomainGeneratorConfig> for RectDriver {
+    type Generator = RectDomainGenerator;
+
+    fn create(
+        config: RectDomainGeneratorConfig,
+    ) -> Result<Self::Generator, Box<dyn std::error::Error>> {
+        Ok(RectDomainGenerator::new(config))
+    }
+}
+
+pub static RECT_DRIVER: LazyLock<pgaf_sdk::domain::Driver> = LazyLock::new(|| {
+    DomainGeneratorDriverTyped::<RectDriver, RectDomainGeneratorConfig>::default()
+        .coerce_to_dynamic()
 });
 
 #[cfg(test)]

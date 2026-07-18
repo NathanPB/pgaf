@@ -19,7 +19,12 @@ pub struct ProcessorBuilder<'a> {
 
 impl<'a> ProcessorBuilder<'a> {
     pub fn build(self) -> Result<Processor, Box<dyn Error>> {
-        let domaingen = self.config.domain.build()?;
+        let domaingen = self
+            .config
+            .domain
+            .driver
+            .create(self.config.domain.args.clone())?;
+
         let ctx_gen = ContextGenerator::new(Box::new(domaingen), self.config.domain.sample_size)?;
 
         let deserializer = ContextValueDeserializeSeed {

@@ -1,12 +1,12 @@
 use gdal::raster::{Buffer, GdalDataType};
 use gdal::{Dataset, GeoTransformEx};
 use pgaf_sdk::data::GeoDeg;
-use pgaf_sdk::domain::{DomainGeneratorDriver, ExecutionUnit, UnitId};
+use pgaf_sdk::domain::{DomainGeneratorCreate, DomainGeneratorDriverTyped, ExecutionUnit, UnitId};
 use serde::Deserialize;
 use serde_inline_default::serde_inline_default;
 use std::fmt;
 use std::rc::Rc;
-use std::sync::{Arc, LazyLock};
+use std::sync::LazyLock;
 use validator::Validate;
 
 enum RasterBuffer {
@@ -97,13 +97,21 @@ pub struct RasterDomainGeneratorConfig {
     pub layer_index: usize,
 }
 
-pub const RASTER_DRIVER: LazyLock<
-    DomainGeneratorDriver<RasterDomainGenerator, RasterDomainGeneratorConfig>,
-> = LazyLock::new(|| DomainGeneratorDriver {
-    create: Arc::new(|c: RasterDomainGeneratorConfig| {
-        RasterDomainGenerator::new(c.file.as_str(), c.layer_index)
-    }),
-    config_deserializer: Arc::new(serde_json::from_value),
+pub struct RasterDriver;
+
+impl DomainGeneratorCreate<RasterDomainGeneratorConfig> for RasterDriver {
+    type Generator = RasterDomainGenerator;
+
+    fn create(
+        config: RasterDomainGeneratorConfig,
+    ) -> Result<Self::Generator, Box<dyn std::error::Error>> {
+        RasterDomainGenerator::new(config.file.as_str(), config.layer_index)
+    }
+}
+
+pub static RASTER_DRIVER: LazyLock<pgaf_sdk::domain::Driver> = LazyLock::new(|| {
+    DomainGeneratorDriverTyped::<RasterDriver, RasterDomainGeneratorConfig>::default()
+        .coerce_to_dynamic()
 });
 
 impl RasterDomainGenerator {
@@ -233,15 +241,15 @@ mod tests {
 
     #[test]
     fn test_raster_domain_generator() {
-        let testfile = Path::new(env!("CARGO_MANIFEST_DIR"))
+        let testfile: String = Path::new(env!("CARGO_MANIFEST_DIR"))
             .parent()
             .unwrap()
             .parent()
             .unwrap()
             .join("testdata")
             .join("DSSAT-Soils.tif")
-            .into_string()
-            .unwrap();
+            .to_string_lossy()
+            .to_string();
 
         dbg!(&testfile);
 

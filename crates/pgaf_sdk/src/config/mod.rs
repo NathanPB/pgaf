@@ -1,10 +1,8 @@
 mod validate; // TODO: Decouple validation/parsing from SDK
 
-use crate::domain::{DomainGenerator, DomainGeneratorDriver};
+use crate::{domain, pipeline};
 use serde::Serialize;
 use serde_inline_default::serde_inline_default;
-use std::any::Any;
-use std::error::Error;
 use validate::{RE_PIPELINE_STEP_NAME, validate_unique_pipeline_names};
 use validator::Validate;
 
@@ -20,16 +18,9 @@ pub struct Config {
 
 #[derive(Validate, Clone)]
 pub struct DomainConfig {
-    pub driver: DomainGeneratorDriver<Box<dyn DomainGenerator>, Box<dyn Any>>,
+    pub driver: domain::Driver,
     pub sample_size: Option<usize>,
     pub args: serde_json::Value,
-}
-
-impl DomainConfig {
-    pub fn build(&self) -> Result<Box<dyn DomainGenerator>, Box<dyn Error>> {
-        let config = (self.driver.config_deserializer)(self.args.clone())?;
-        (self.driver.create)(config)
-    }
 }
 
 #[derive(Validate, Serialize, Clone, Debug)]
@@ -38,7 +29,7 @@ pub struct PipelineStep {
     pub name: String,
 
     #[serde(skip)]
-    pub driver: crate::pipeline::Driver,
+    pub driver: pipeline::Driver,
 
     #[serde(skip)]
     pub args: serde_json::Value,

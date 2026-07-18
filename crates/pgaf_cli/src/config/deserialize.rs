@@ -195,14 +195,14 @@ impl<'de> Visitor<'de> for ConfigVisitor<'de, DomainConfig> {
     where
         A: MapAccess<'de>,
     {
-        let mut resource: Option<DomainGeneratorDriverResource> = None;
+        let mut driver: Option<DomainGeneratorDriverResource> = None;
         let mut sample_size = None;
         let mut args: Map<String, serde_json::Value> = Map::new();
 
         while let Some(key) = map.next_key::<String>()? {
             match key.as_str() {
                 "type" => {
-                    resource = Some(map.next_value_seed(
+                    driver = Some(map.next_value_seed(
                         self.seed.clone().cast::<DomainGeneratorDriverResource>(),
                     )?)
                 }
@@ -213,9 +213,9 @@ impl<'de> Visitor<'de> for ConfigVisitor<'de, DomainConfig> {
             }
         }
 
-        let resource = resource.ok_or_else(|| serde::de::Error::missing_field("type"))?;
+        let driver = driver.ok_or_else(|| serde::de::Error::missing_field("type"))?;
         Ok(DomainConfig {
-            driver: resource.0,
+            driver: driver.0,
             sample_size,
             args: Value::Object(args),
         })

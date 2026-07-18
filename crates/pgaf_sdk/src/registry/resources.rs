@@ -1,13 +1,9 @@
-use std::any::Any;
-
 use crate::{domain, function, pipeline};
 
 use super::Resource;
 
 #[derive(Clone)]
-pub struct DomainGeneratorDriverResource(
-    pub domain::DomainGeneratorDriver<Box<dyn domain::DomainGenerator>, Box<dyn Any>>,
-);
+pub struct DomainGeneratorDriverResource(pub domain::Driver);
 impl Resource for DomainGeneratorDriverResource {}
 
 #[derive(Clone)]

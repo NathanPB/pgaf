@@ -2,11 +2,10 @@ use gdal::Dataset;
 use gdal::errors::GdalError;
 use gdal::vector::{Feature, FeatureIterator, FieldValue, Layer, LayerAccess};
 use pgaf_sdk::data::GeoDeg;
-use pgaf_sdk::domain::{DomainGeneratorDriver, ExecutionUnit, UnitId};
+use pgaf_sdk::domain::{DomainGeneratorCreate, DomainGeneratorDriverTyped, ExecutionUnit, UnitId};
 use serde::Deserialize;
 use serde_inline_default::serde_inline_default;
 use std::rc::Rc;
-use std::sync::Arc;
 use std::sync::LazyLock;
 use validator::Validate;
 
@@ -39,13 +38,21 @@ pub struct VectorDomainGeneratorConfig {
     pub unit_id_key: String,
 }
 
-pub const VECTOR_DRIVER: LazyLock<
-    DomainGeneratorDriver<VectorDomainGenerator, VectorDomainGeneratorConfig>,
-> = LazyLock::new(|| DomainGeneratorDriver {
-    create: Arc::new(|c: VectorDomainGeneratorConfig| {
-        VectorDomainGenerator::new(c.file.as_str(), c.unit_id_key)
-    }),
-    config_deserializer: Arc::new(serde_json::from_value),
+pub struct VectorDriver;
+
+impl DomainGeneratorCreate<VectorDomainGeneratorConfig> for VectorDriver {
+    type Generator = VectorDomainGenerator;
+
+    fn create(
+        config: VectorDomainGeneratorConfig,
+    ) -> Result<Self::Generator, Box<dyn std::error::Error>> {
+        VectorDomainGenerator::new(config.file.as_str(), config.unit_id_key)
+    }
+}
+
+pub static VECTOR_DRIVER: LazyLock<pgaf_sdk::domain::Driver> = LazyLock::new(|| {
+    DomainGeneratorDriverTyped::<VectorDriver, VectorDomainGeneratorConfig>::default()
+        .coerce_to_dynamic()
 });
 
 impl VectorDomainGenerator {
@@ -160,8 +167,8 @@ mod tests {
             .unwrap()
             .join("testdata")
             .join("DSSAT-Soils.shp.zip")
-            .into_string()
-            .unwrap();
+            .to_string_lossy()
+            .to_string();
 
         let generator = VectorDomainGenerator::new(&testfile, "CELL5M".to_string()).unwrap();
 
