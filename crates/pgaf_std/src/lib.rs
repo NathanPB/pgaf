@@ -59,6 +59,12 @@ fn register_function_drivers(
 
     registry.register(
         namespace,
+        "dbgfib",
+        FunctionDriverResource(dbgfib::DBG_FIB_DRIVER.clone()),
+    )?;
+
+    registry.register(
+        namespace,
         "greet",
         FunctionDriverResource(greet::GREET_DRIVER.clone()),
     )?;
