@@ -28,9 +28,6 @@ pub struct Args {
     #[arg(short, long, default_value_t = 0)]
     pub workers: usize,
 
-    /// Size of the buffer between each step of the processing pipeline. Defaults to 128.
-    #[arg(short, long, default_value_t = 128)]
-    pub pipeline_buffer_size: usize,
 }
 
 fn validate(args: &Args, config: &Config) -> Result<(), ConfigError> {

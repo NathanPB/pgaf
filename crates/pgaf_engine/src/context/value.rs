@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 
 use crate::context::expr::Expr;
-use crate::pipeline::PipelineData;
-use pgaf_sdk::context::{Context, ContextEvaluationError, ContextValue, PrimitiveContextValue};
+use pgaf_sdk::context::{ContextEvaluationError, ContextValue, PrimitiveContextValue};
 use pgaf_sdk::registry::{PublicIdentifier, Registries};
 use serde::de::DeserializeSeed;
 use serde::{Deserialize, Deserializer};
@@ -87,11 +86,11 @@ fn expr_to_context_value(
     })
 }
 
-impl PipelineData for Context {}
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pgaf_sdk::context::Context;
     use pgaf_sdk::data::GeoDeg;
     use pgaf_sdk::domain::ExecutionUnit;
     use pgaf_sdk::function::{Driver, Function, FunctionDriver, FunctionRuntimeError};

@@ -1,6 +1,6 @@
 use pgaf::config;
 
-use pgaf_engine::processor::ProcessingBuilder;
+use pgaf_engine::processor::ProcessorBuilder;
 use pgaf_sdk::registry;
 
 static STD_NAMESPACE: &str = "std";
@@ -28,10 +28,9 @@ fn main() {
         config_file.canonicalize().ok().unwrap().display()
     );
 
-    let processing = ProcessingBuilder {
+    let processing = ProcessorBuilder {
         config: &config,
         workers: args.workers,
-        pipeline_buffer_size: args.pipeline_buffer_size,
         registries: &registries,
         std_namespace: STD_NAMESPACE.to_string(),
     }
