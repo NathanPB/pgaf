@@ -1,3 +1,4 @@
+pub mod cmd;
 pub mod filter;
 pub mod map;
 pub mod unset;

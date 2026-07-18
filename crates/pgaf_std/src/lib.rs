@@ -87,5 +87,11 @@ fn register_pipelinestep_drivers(
         PipelineStepTypeDriverResource(void::VOID_DRIVER.clone()),
     )?;
 
+    registry.register(
+        namespace,
+        "cmd",
+        PipelineStepTypeDriverResource(cmd::CMD_DRIVER.clone()),
+    )?;
+
     Ok(())
 }
