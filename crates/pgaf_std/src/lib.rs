@@ -74,6 +74,12 @@ fn register_pipelinestep_drivers(
 
     registry.register(
         namespace,
+        "display",
+        PipelineStepTypeDriverResource(display::DISPLAY_DRIVER.clone()),
+    )?;
+
+    registry.register(
+        namespace,
         "filter",
         PipelineStepTypeDriverResource(filter::FILTER_DRIVER.clone()),
     )?;

@@ -1,4 +1,5 @@
 pub mod cmd;
+pub mod display;
 pub mod filter;
 pub mod map;
 pub mod template;
