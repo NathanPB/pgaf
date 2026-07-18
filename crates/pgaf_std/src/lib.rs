@@ -39,6 +39,15 @@ fn register_domaingen_drivers(
         )?;
     }
 
+    {
+        let driver = crate::domain::rect::RECTANGLE_DRIVER;
+        registry.register(
+            namespace,
+            "rect",
+            DomainGeneratorDriverResource(driver.clone().coerce_to_dynamic()),
+        )?;
+    }
+
     Ok(())
 }
 
