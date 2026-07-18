@@ -93,5 +93,11 @@ fn register_pipelinestep_drivers(
         PipelineStepTypeDriverResource(cmd::CMD_DRIVER.clone()),
     )?;
 
+    registry.register(
+        namespace,
+        "template",
+        PipelineStepTypeDriverResource(template::TEMPLATE_DRIVER.clone()),
+    )?;
+
     Ok(())
 }

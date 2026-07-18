@@ -1,6 +1,7 @@
 pub mod cmd;
 pub mod filter;
 pub mod map;
+pub mod template;
 pub mod unset;
 pub mod void;
 
