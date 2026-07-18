@@ -153,10 +153,8 @@ fn build_tera_ctx(ctx: &Context) -> Result<tera::Context, TemplateError> {
     let id = ctx.unit.id.to_string();
     let lon = ctx.unit.lon.as_f64();
     let lat = ctx.unit.lat.as_f64();
-    let name = ctx.run.name.clone();
     let extras: Vec<(String, serde_json::Value)> = ctx
-        .run
-        .extra
+        .data
         .iter()
         .map(|(k, v)| {
             let prim = v.to_prim(ctx).map_err(TemplateError::Context)?;
@@ -169,7 +167,6 @@ fn build_tera_ctx(ctx: &Context) -> Result<tera::Context, TemplateError> {
     tera_ctx.insert("id", &id);
     tera_ctx.insert("lon", &lon);
     tera_ctx.insert("lat", &lat);
-    tera_ctx.insert("name", &name);
     for (k, v) in extras {
         tera_ctx.insert(k, &v);
     }
@@ -191,7 +188,7 @@ fn render(args: TemplateArgs, ctx: &mut Context) -> Result<(), TemplateError> {
     }
 
     if let Some(key) = args.output {
-        ctx.run.extra.insert(
+        ctx.data.insert(
             key,
             ContextValue::Prim(PrimitiveContextValue::String(rendered)),
         );
@@ -250,7 +247,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            ctx.run.extra.get("out"),
+            ctx.data.get("out"),
             Some(&ContextValue::Prim(PrimitiveContextValue::String(
                 "hello world".into()
             )))
@@ -271,7 +268,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            ctx.run.extra.get("out"),
+            ctx.data.get("out"),
             Some(&ContextValue::Prim(PrimitiveContextValue::String(
                 "hi there".into()
             )))
@@ -295,7 +292,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            ctx.run.extra.get("out"),
+            ctx.data.get("out"),
             Some(&ContextValue::Prim(PrimitiveContextValue::String(
                 "file: ok".into()
             )))
@@ -335,7 +332,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            ctx.run.extra.get("out"),
+            ctx.data.get("out"),
             Some(&ContextValue::Prim(PrimitiveContextValue::String(
                 "dual".into()
             )))

@@ -91,11 +91,9 @@ impl Driver {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::RunConfig;
     use crate::data::GeoDeg;
     use crate::domain::ExecutionUnit;
     use serde::Deserialize;
-    use std::path::PathBuf;
 
     struct StringFn;
     #[derive(Deserialize)]
@@ -112,21 +110,17 @@ mod tests {
     }
 
     fn make_ctx() -> Context {
-        make_ctx_with_extra(HashMap::new())
+        make_ctx_with_data(HashMap::new())
     }
 
-    fn make_ctx_with_extra(extra: HashMap<String, ContextValue>) -> Context {
+    fn make_ctx_with_data(data: HashMap<String, ContextValue>) -> Context {
         Context {
             unit: ExecutionUnit {
                 id: 1.into(),
                 lon: GeoDeg::from(0.0),
                 lat: GeoDeg::from(0.0),
             },
-            run: RunConfig {
-                name: "test".into(),
-                extra,
-                template: PathBuf::from("dummy"),
-            },
+            data,
         }
     }
 
@@ -149,7 +143,7 @@ mod tests {
 
     #[test]
     fn lazy_template_string() {
-        let ctx = make_ctx_with_extra(
+        let ctx = make_ctx_with_data(
             [(
                 "user_name".into(),
                 ContextValue::Prim(PrimitiveContextValue::String("Alice".into())),

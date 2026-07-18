@@ -3,12 +3,10 @@ pub mod unbatched;
 use crate::context::generator::ContextGenerator;
 use crate::context::value::ContextValueDeserializeSeed;
 use crate::pipeline::{Pipeline, PipelineData, PipelineKind, create_pipeline_from_config};
-use crate::template::TemplateEngine;
 use pgaf_sdk::config::Config;
 use pgaf_sdk::context::Context;
 use pgaf_sdk::registry::Registries;
 use std::error::Error;
-use std::path::PathBuf;
 use std::sync::{
     Arc,
     mpmc::{Receiver, Sender, sync_channel},
@@ -23,7 +21,6 @@ pub trait Processor: Send + Sync {
         &self,
         tx: &Sender<Self::Output>,
         rx: &Receiver<Context>,
-        templates: &TemplateEngine,
     ) -> Result<(), Box<dyn Error + Send>>;
 }
 
@@ -31,7 +28,6 @@ pub struct ProcessingBuilder<'a> {
     pub config: &'a Config,
     pub workers: usize,
     pub pipeline_buffer_size: usize,
-    pub workdir: PathBuf,
     pub registries: &'a Registries,
     pub std_namespace: String,
 }
@@ -40,28 +36,18 @@ impl<'a> ProcessingBuilder<'a> {
     pub fn build(self) -> Result<Processing<Context>, Box<dyn std::error::Error>> {
         let domaingen = self.config.domain.build()?;
 
-        let ctx_gen = ContextGenerator::new(
-            Box::new(domaingen),
-            self.config.runs.clone(),
-            self.config.domain.sample_size,
-        )?;
+        let ctx_gen = ContextGenerator::new(Box::new(domaingen), self.config.domain.sample_size)?;
 
         let deserializer = ContextValueDeserializeSeed {
             registries: self.registries,
             default_namespace: self.std_namespace,
         };
-        let processor = UnbatchedProcessor::new(self.workdir, self.config, &deserializer);
+        let processor = UnbatchedProcessor::new(self.config, &deserializer);
         let pipeline = create_pipeline_from_config(self.config, self.workers, processor)?;
-
-        let mut templates = TemplateEngine::default();
-        for run in &self.config.runs {
-            templates.register(run.name.as_str(), &run.template)?;
-        }
 
         Ok(Processing {
             pipeline,
             ctx_gen,
-            templates,
             buffer_size: self.pipeline_buffer_size,
         })
     }
@@ -70,7 +56,6 @@ impl<'a> ProcessingBuilder<'a> {
 pub struct Processing<T: PipelineData> {
     pipeline: PipelineKind<T>,
     ctx_gen: ContextGenerator,
-    templates: TemplateEngine,
     buffer_size: usize,
 }
 
@@ -87,11 +72,7 @@ impl<T: PipelineData + 'static> Processing<T> {
             let (tx_conduct, rx) = sync_channel::<T>(self.buffer_size);
 
             let tx_conduct2 = tx_conduct.clone();
-            let t_conductor = s.spawn(move || {
-                pipeline
-                    .conduct(&tx_conduct2, &rx_conduct, &self.templates)
-                    .unwrap()
-            });
+            let t_conductor = s.spawn(move || pipeline.conduct(&tx_conduct2, &rx_conduct).unwrap());
             let t_sink = s.spawn(move || {
                 for _ in rx { /* noop */ }
             });

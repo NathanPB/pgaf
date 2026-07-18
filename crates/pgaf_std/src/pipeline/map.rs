@@ -17,7 +17,7 @@ impl PipelineStepType<HashMap<String, PrimitiveContextValue>> for Map {
     ) -> Box<dyn Iterator<Item = Context>> {
         Box::new(stream.map(|(updates, mut ctx)| {
             for (key, value) in updates {
-                ctx.run.extra.insert(key, ContextValue::Prim(value));
+                ctx.data.insert(key, ContextValue::Prim(value));
             }
             ctx
         }))
@@ -57,11 +57,11 @@ mod tests {
         assert_eq!(result.len(), 1);
         let ctx = result.remove(0);
         assert_eq!(
-            ctx.run.extra.get("score"),
+            ctx.data.get("score"),
             Some(&ContextValue::Prim(PrimitiveContextValue::Int(99)))
         );
         assert_eq!(
-            ctx.run.extra.get("label"),
+            ctx.data.get("label"),
             Some(&ContextValue::Prim(PrimitiveContextValue::String(
                 "ok".into()
             )))
@@ -71,7 +71,7 @@ mod tests {
     #[test]
     fn overwrites_existing_key() {
         let mut ctx = make_ctx(1);
-        ctx.run.extra.insert(
+        ctx.data.insert(
             "score".into(),
             ContextValue::Prim(PrimitiveContextValue::Int(0)),
         );
@@ -87,7 +87,7 @@ mod tests {
             .collect();
         let ctx = result.remove(0);
         assert_eq!(
-            ctx.run.extra.get("score"),
+            ctx.data.get("score"),
             Some(&ContextValue::Prim(PrimitiveContextValue::Int(100)))
         );
     }

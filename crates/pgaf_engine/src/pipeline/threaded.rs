@@ -1,5 +1,4 @@
 use super::super::processor::Processor;
-use super::super::template::TemplateEngine;
 use super::{Pipeline, PipelineData};
 use pgaf_sdk::context::Context;
 use std::error::Error;
@@ -48,7 +47,6 @@ impl<O: PipelineData + 'static> Pipeline for ThreadedPipeline<O> {
         &self,
         tx: &Sender<Self::Output>,
         rx: &Receiver<Context>,
-        templates: &TemplateEngine,
     ) -> Result<(), Box<dyn Error + Send>> {
         thread::scope(|s| {
             let thread_pool: Vec<ScopedJoinHandle<()>> = (0..self.workers)
@@ -56,7 +54,7 @@ impl<O: PipelineData + 'static> Pipeline for ThreadedPipeline<O> {
                 .map(move |(i, _)| {
                     s.spawn(move || {
                         // TODO: better error recovery
-                        if let Err(err) = self.processor.process(tx, rx, templates) {
+                        if let Err(err) = self.processor.process(tx, rx) {
                             panic!("ThreadedPipeline: Worker Thread {} crashed: {}", i, err);
                         }
                     })

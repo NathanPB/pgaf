@@ -19,7 +19,7 @@ impl PipelineStepType<HashMap<String, PrimitiveContextValue>> for Unset {
             for (key, value) in predicates {
                 match value {
                     PrimitiveContextValue::Bool(false) => {
-                        ctx.run.extra.remove(&key);
+                        ctx.data.remove(&key);
                     }
                     PrimitiveContextValue::Bool(true) => {}
                     _ => {
@@ -64,7 +64,7 @@ mod tests {
             .invoke(args, Box::new(vec![ctx].into_iter()))
             .collect();
         let ctx = result.remove(0);
-        assert!(!ctx.run.extra.contains_key("foo"));
+        assert!(!ctx.data.contains_key("foo"));
     }
 
     #[test]
@@ -80,7 +80,7 @@ mod tests {
             .invoke(args, Box::new(vec![ctx].into_iter()))
             .collect();
         let ctx = result.remove(0);
-        assert!(ctx.run.extra.contains_key("foo"));
+        assert!(ctx.data.contains_key("foo"));
     }
 
     #[test]
@@ -100,6 +100,6 @@ mod tests {
             .invoke(args, Box::new(vec![ctx].into_iter()))
             .collect();
         let ctx = result.remove(0);
-        assert!(ctx.run.extra.contains_key("foo"));
+        assert!(ctx.data.contains_key("foo"));
     }
 }

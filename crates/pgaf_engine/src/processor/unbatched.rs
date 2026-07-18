@@ -1,6 +1,5 @@
 use super::Processor;
 use crate::context::value::ContextValueDeserializeSeed;
-use crate::template::TemplateEngine;
 use pgaf_sdk::context::Context;
 use pgaf_sdk::pipeline::PipelineStepTypeArgs;
 use pgaf_sdk::{config, pipeline};
@@ -11,8 +10,6 @@ use serde::de::value::{
 use serde::de::{DeserializeSeed, Visitor};
 use std::collections::HashMap;
 use std::error::Error;
-use std::fs::create_dir_all;
-use std::path::PathBuf;
 use std::sync::mpmc::{Receiver, Sender};
 
 // TODO: I sould move these deserializers out of here
@@ -103,16 +100,11 @@ impl<'de> Visitor<'de> for PipelineStepTypeArgsDeserializerVisitor<'de> {
 }
 
 pub struct UnbatchedProcessor {
-    workdir: PathBuf,
     pipeline: Vec<(pipeline::Driver, pipeline::PipelineStepTypeArgs)>,
 }
 
 impl UnbatchedProcessor {
-    pub fn new(
-        workdir: PathBuf,
-        config: &config::Config,
-        deserializer: &ContextValueDeserializeSeed,
-    ) -> Self {
+    pub fn new(config: &config::Config, deserializer: &ContextValueDeserializeSeed) -> Self {
         let pipeline: Vec<_> = config
             .pipeline
             .iter()
@@ -127,7 +119,7 @@ impl UnbatchedProcessor {
             })
             .collect();
 
-        Self { workdir, pipeline }
+        Self { pipeline }
     }
 }
 
@@ -138,42 +130,13 @@ impl Processor for UnbatchedProcessor {
         &self,
         tx: &Sender<Self::Output>,
         rx: &Receiver<Self::Output>,
-        templates: &TemplateEngine,
     ) -> Result<(), Box<dyn Error + Send>> {
-        // TODO: better error handling
         rx.iter()
             .flat_map(|ctx| {
                 let stream: Box<dyn Iterator<Item = Context>> = Box::new(std::iter::once(ctx));
                 self.pipeline
                     .iter()
                     .fold(stream, |s, (driver, args)| driver.invoke(args.clone(), s))
-            })
-            .inspect(|ctx| {
-                let path = ctx.dir(&self.workdir);
-                if let Err(err) = create_dir_all(&path) {
-                    eprintln!("UnbatchedProcessor: Failed to create directory: {}", err);
-                }
-
-                let filename = match templates.file_name(ctx.run.name.as_str()) {
-                    Some(filename) => filename,
-                    None => {
-                        panic!(
-                            "Failed to render template for context ID {} ({}, {}): Template file name not registered",
-                            ctx.unit.id, ctx.unit.lon, ctx.unit.lat
-                        );
-                    }
-                };
-
-                let rendered = templates.render(ctx).unwrap();
-                let mut template_path = ctx.dir(&self.workdir);
-                template_path.push(filename);
-
-                if let Err(err) = std::fs::write(template_path, rendered) {
-                    panic!(
-                        "Failed to render template for context ID {} ({}, {}): {}",
-                        ctx.unit.id, ctx.unit.lon, ctx.unit.lat, err
-                    );
-                }
             })
             .try_for_each(|ctx| tx.send(ctx))
             .map_err(|err| Box::new(err) as Box<dyn Error + Send>)

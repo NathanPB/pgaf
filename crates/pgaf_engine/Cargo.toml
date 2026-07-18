@@ -11,7 +11,6 @@ license.workspace = true
 pgaf_sdk = { workspace = true }
 serde = { version = "1", features = ["derive"] }
 num_cpus = "1"
-tera = { version = "1", default-features = false }
 thiserror = "2"
 pest = "2"
 pest_derive = "2"

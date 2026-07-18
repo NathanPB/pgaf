@@ -153,13 +153,11 @@ impl<'de, 'ctx> SeqAccess<'de> for ContextSeqAccess<'ctx> {
 #[cfg(test)]
 mod tests {
     use super::super::{PipelineStepType, PipelineStepTypeArgs, PipelineStepTypeDriver};
-    use crate::config::RunConfig;
     use crate::context::{Context, ContextValue, PrimitiveContextValue};
     use crate::data::GeoDeg;
     use crate::domain::{ExecutionUnit, UnitId};
     use serde::Deserialize;
     use std::collections::HashMap;
-    use std::path::PathBuf;
 
     fn make_ctx() -> Context {
         make_ctx_with_id(1)
@@ -172,11 +170,7 @@ mod tests {
                 lon: GeoDeg::from(0.0),
                 lat: GeoDeg::from(0.0),
             },
-            run: RunConfig {
-                name: "test".into(),
-                extra: HashMap::new(),
-                template: PathBuf::from("dummy"),
-            },
+            data: HashMap::default(),
         }
     }
 
@@ -200,7 +194,7 @@ mod tests {
             stream: Box<dyn Iterator<Item = (String, Context)>>,
         ) -> Box<dyn Iterator<Item = Context>> {
             Box::new(stream.map(|(s, mut ctx)| {
-                ctx.run.extra.insert(
+                ctx.data.insert(
                     "result".into(),
                     ContextValue::Prim(PrimitiveContextValue::String(s)),
                 );
@@ -218,7 +212,7 @@ mod tests {
         );
         assert_eq!(output.len(), 1);
         assert_eq!(
-            output[0].run.extra.get("result"),
+            output[0].data.get("result"),
             Some(&prim(PrimitiveContextValue::String("hello".into())))
         );
     }
@@ -226,7 +220,7 @@ mod tests {
     #[test]
     fn one_resolves_ident() {
         let mut ctx = make_ctx();
-        ctx.run.extra.insert(
+        ctx.data.insert(
             "greeting".into(),
             prim(PrimitiveContextValue::String("world".into())),
         );
@@ -237,7 +231,7 @@ mod tests {
         );
         assert_eq!(output.len(), 1);
         assert_eq!(
-            output[0].run.extra.get("result"),
+            output[0].data.get("result"),
             Some(&prim(PrimitiveContextValue::String("world".into())))
         );
     }
@@ -250,7 +244,7 @@ mod tests {
             stream: Box<dyn Iterator<Item = (Vec<i64>, Context)>>,
         ) -> Box<dyn Iterator<Item = Context>> {
             Box::new(stream.map(|(v, mut ctx)| {
-                ctx.run.extra.insert(
+                ctx.data.insert(
                     "result".into(),
                     ContextValue::Prim(PrimitiveContextValue::Int(v.iter().sum())),
                 );
@@ -272,7 +266,7 @@ mod tests {
         );
         assert_eq!(output.len(), 1);
         assert_eq!(
-            output[0].run.extra.get("result"),
+            output[0].data.get("result"),
             Some(&prim(PrimitiveContextValue::Int(6)))
         );
     }
@@ -286,7 +280,7 @@ mod tests {
         );
         assert_eq!(output.len(), 1);
         assert_eq!(
-            output[0].run.extra.get("result"),
+            output[0].data.get("result"),
             Some(&prim(PrimitiveContextValue::Int(0)))
         );
     }
@@ -305,7 +299,7 @@ mod tests {
             stream: Box<dyn Iterator<Item = (Point, Context)>>,
         ) -> Box<dyn Iterator<Item = Context>> {
             Box::new(stream.map(|(p, mut ctx)| {
-                ctx.run.extra.insert(
+                ctx.data.insert(
                     "result".into(),
                     ContextValue::Prim(PrimitiveContextValue::String(format!("{},{}", p.x, p.y))),
                 );
@@ -329,7 +323,7 @@ mod tests {
         );
         assert_eq!(output.len(), 1);
         assert_eq!(
-            output[0].run.extra.get("result"),
+            output[0].data.get("result"),
             Some(&prim(PrimitiveContextValue::String("1.5,2.5".into())))
         );
     }
@@ -356,8 +350,7 @@ mod tests {
     #[test]
     fn map_resolves_ident() {
         let mut ctx = make_ctx();
-        ctx.run
-            .extra
+        ctx.data
             .insert("my_x".into(), prim(PrimitiveContextValue::Float(9.0)));
         let output = run(
             PipelineStepTypeDriver::<StorePoint, Point>::default().coerce_to_dynamic(),
@@ -372,7 +365,7 @@ mod tests {
         );
         assert_eq!(output.len(), 1);
         assert_eq!(
-            output[0].run.extra.get("result"),
+            output[0].data.get("result"),
             Some(&prim(PrimitiveContextValue::String("9,0".into())))
         );
     }

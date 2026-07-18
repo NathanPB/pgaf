@@ -2,7 +2,6 @@ mod sync;
 mod threaded;
 
 use super::processor::Processor;
-use super::template::TemplateEngine;
 use pgaf_sdk::config::Config;
 use pgaf_sdk::context::Context;
 use std::error::Error;
@@ -18,7 +17,6 @@ pub trait Pipeline: Send + Sync {
         &self,
         tx: &Sender<Self::Output>,
         rx: &Receiver<Context>,
-        templates: &TemplateEngine,
     ) -> Result<(), Box<dyn Error + Send>>;
 }
 

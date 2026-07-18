@@ -1,4 +1,3 @@
-use pgaf_sdk::config::RunConfig;
 use pgaf_sdk::context::Context;
 use pgaf_sdk::domain::{DomainGenerator, ExecutionUnit};
 
@@ -13,14 +12,11 @@ pub struct ContextGenerator {
     curr_unit: Option<ExecutionUnit>,
     sample_size: Option<usize>,
     current_count: usize,
-    runs: Vec<RunConfig>,
-    current_run: usize,
 }
 
 impl ContextGenerator {
     pub fn new(
         domain_generator: Box<dyn DomainGenerator>,
-        runs: Vec<RunConfig>,
         sample_size: Option<usize>,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         Ok(ContextGenerator {
@@ -28,8 +24,6 @@ impl ContextGenerator {
             curr_unit: None,
             sample_size,
             current_count: 0,
-            runs,
-            current_run: 0,
         })
     }
 }
@@ -44,22 +38,15 @@ impl Iterator for ContextGenerator {
             return None;
         }
 
-        if self.current_run >= self.runs.len() {
-            self.current_run = 0;
-            self.curr_unit = None;
-        }
-
         if self.curr_unit.is_none() {
             self.curr_unit = self.domain_generator.next();
             self.curr_unit.as_ref()?;
         }
 
-        let run = self.runs[self.current_run].clone();
-        self.current_run += 1;
         self.current_count += 1;
         Some(Context {
             unit: self.curr_unit.clone()?,
-            run,
+            data: Default::default(),
         })
     }
 }
@@ -68,51 +55,6 @@ impl Iterator for ContextGenerator {
 mod tests {
     use super::*;
     use pgaf_sdk::data::GeoDeg;
-    use pgaf_sdk::domain::UnitId;
-    use std::collections::HashMap;
-    use std::path::PathBuf;
-
-    #[test]
-    fn context_gen() {
-        let domain_gen: Box<dyn DomainGenerator> =
-            Box::new((0..200).map(|id: i64| ExecutionUnit {
-                id: id.into(),
-                lon: GeoDeg::from(0.0),
-                lat: GeoDeg::from(0.0),
-            }));
-
-        let runs = vec![
-            RunConfig {
-                name: String::from("r1"),
-                extra: HashMap::new(),
-                template: PathBuf::from("dummy"),
-            },
-            RunConfig {
-                name: String::from("r2"),
-                extra: HashMap::new(),
-                template: PathBuf::from("dummy"),
-            },
-        ];
-
-        let generator = ContextGenerator::new(domain_gen, runs, None).unwrap();
-        let mut max = i64::MIN;
-
-        for (i, ctx) in generator.enumerate() {
-            assert_eq!(UnitId::Int((i / 2) as i64), ctx.unit.id);
-
-            if i % 2 == 0 {
-                assert_eq!(ctx.run.name, "r1");
-            } else {
-                assert_eq!(ctx.run.name, "r2");
-            }
-
-            if let UnitId::Int(v) = ctx.unit.id {
-                max = max.max(v);
-            }
-        }
-
-        assert_eq!(max, 199);
-    }
 
     #[test]
     fn test_sample_size() {
@@ -123,13 +65,7 @@ mod tests {
                 lat: GeoDeg::from(0.0),
             }));
 
-        let runs = vec![RunConfig {
-            name: String::from("r1"),
-            extra: HashMap::new(),
-            template: PathBuf::from("dummy"),
-        }];
-
-        let generator = ContextGenerator::new(domain_src, runs, Some(50)).unwrap();
+        let generator = ContextGenerator::new(domain_src, Some(50)).unwrap();
         assert_eq!(generator.count(), 50);
     }
 }

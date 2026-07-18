@@ -701,7 +701,6 @@ dependencies = [
  "pgaf_sdk",
  "serde",
  "serde_json",
- "tera 1.20.0",
  "thiserror",
 ]
 

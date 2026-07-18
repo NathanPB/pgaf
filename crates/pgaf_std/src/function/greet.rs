@@ -31,8 +31,7 @@ pub static GREET_DRIVER: LazyLock<Driver> =
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pgaf_sdk::{config::RunConfig, context::ContextValue, data::GeoDeg, domain::ExecutionUnit};
-    use std::path::PathBuf;
+    use pgaf_sdk::{context::ContextValue, data::GeoDeg, domain::ExecutionUnit};
 
     #[test]
     fn greet() {
@@ -42,11 +41,7 @@ mod tests {
                 lon: GeoDeg::from(0.0),
                 lat: GeoDeg::from(0.0),
             },
-            run: RunConfig {
-                name: "test".into(),
-                extra: Default::default(),
-                template: PathBuf::from("dummy"),
-            },
+            data: Default::default(),
         };
 
         let args = [

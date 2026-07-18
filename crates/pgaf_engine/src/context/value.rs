@@ -97,7 +97,6 @@ mod tests {
     use pgaf_sdk::function::{Driver, Function, FunctionDriver, FunctionRuntimeError};
     use pgaf_sdk::registry::FunctionDriverResource;
     use std::error::Error;
-    use std::path::PathBuf;
     use std::sync::LazyLock;
 
     struct FnUppercase;
@@ -235,33 +234,29 @@ mod tests {
                 lon: GeoDeg::from(15.222),
                 lat: GeoDeg::from(-15.23133),
             },
-            run: pgaf_sdk::config::RunConfig {
-                name: String::from("r1"),
-                template: PathBuf::from("dummy"),
-                extra: [
-                    ("foo".to_string(), PrimitiveContextValue::Int(123).into()),
-                    ("bar".to_string(), ContextValue::Ident("foo".to_string())),
-                    (
-                        "baz".to_string(),
-                        ContextValue::Ident("invalid".to_string()),
-                    ),
-                ]
-                .into(),
-            },
+            data: [
+                ("foo".to_string(), PrimitiveContextValue::Int(123).into()),
+                ("bar".to_string(), ContextValue::Ident("foo".to_string())),
+                (
+                    "baz".to_string(),
+                    ContextValue::Ident("invalid".to_string()),
+                ),
+            ]
+            .into(),
         };
 
         assert_eq!(
-            ctx.run.extra.get("foo").unwrap().to_prim(&ctx).unwrap(),
+            ctx.data.get("foo").unwrap().to_prim(&ctx).unwrap(),
             PrimitiveContextValue::Int(123),
         );
 
         assert_eq!(
-            ctx.run.extra.get("bar").unwrap().to_prim(&ctx).unwrap(),
+            ctx.data.get("bar").unwrap().to_prim(&ctx).unwrap(),
             PrimitiveContextValue::Int(123),
         );
 
         assert_eq!(
-            ctx.run.extra.get("baz").unwrap().to_prim(&ctx).unwrap_err(),
+            ctx.data.get("baz").unwrap().to_prim(&ctx).unwrap_err(),
             ContextEvaluationError::IdentifierNotFound("invalid".to_string())
         );
     }

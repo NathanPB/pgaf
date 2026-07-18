@@ -1,10 +1,8 @@
-use std::collections::HashMap;
 use std::fmt;
 use std::marker::PhantomData;
-use std::path::PathBuf;
 
 use pgaf_engine::context::value::ContextValueDeserializeSeed;
-use pgaf_sdk::config::{Config, DomainConfig, PipelineStep, RunConfig};
+use pgaf_sdk::config::{Config, DomainConfig, PipelineStep};
 use pgaf_sdk::context::ContextValue;
 use pgaf_sdk::registry::{
     DomainGeneratorDriverResource, PublicIdentifierSeed, Registries, ResourceSeed,
@@ -65,28 +63,6 @@ impl<'de> DeserializeSeed<'de> for ConfigDeserializeSeed<'de, Config> {
 
 impl<'de> DeserializeSeed<'de> for ConfigDeserializeSeed<'de, DomainConfig> {
     type Value = DomainConfig;
-
-    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        deserializer.deserialize_map(ConfigVisitor { seed: self })
-    }
-}
-
-impl<'de> DeserializeSeed<'de> for ConfigDeserializeSeed<'de, Vec<RunConfig>> {
-    type Value = Vec<RunConfig>;
-
-    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        deserializer.deserialize_seq(ConfigVisitor { seed: self })
-    }
-}
-
-impl<'de> DeserializeSeed<'de> for ConfigDeserializeSeed<'de, RunConfig> {
-    type Value = RunConfig;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
@@ -182,7 +158,6 @@ impl<'de> Visitor<'de> for ConfigVisitor<'de, Config> {
     {
         let mut domain: Option<DomainConfig> = None;
         let mut pipeline: Option<Vec<PipelineStep>> = None;
-        let mut runs = None;
 
         while let Some(key) = map.next_key::<String>()? {
             match key.as_str() {
@@ -193,13 +168,10 @@ impl<'de> Visitor<'de> for ConfigVisitor<'de, Config> {
                     pipeline =
                         Some(map.next_value_seed(self.seed.clone().cast::<Vec<PipelineStep>>())?)
                 }
-                "runs" => {
-                    runs = Some(map.next_value_seed(self.seed.clone().cast::<Vec<RunConfig>>())?)
-                }
                 _ => {
                     return Err(serde::de::Error::unknown_field(
                         &key,
-                        &["domain", "pipeline", "runs"],
+                        &["domain", "pipeline"],
                     ));
                 }
             }
@@ -208,7 +180,6 @@ impl<'de> Visitor<'de> for ConfigVisitor<'de, Config> {
         Ok(Config {
             domain: domain.ok_or_else(|| serde::de::Error::missing_field("domain"))?,
             pipeline: pipeline.ok_or_else(|| serde::de::Error::missing_field("pipeline"))?,
-            runs: runs.ok_or_else(|| serde::de::Error::missing_field("runs"))?,
         })
     }
 }
@@ -247,74 +218,6 @@ impl<'de> Visitor<'de> for ConfigVisitor<'de, DomainConfig> {
             driver: resource.0,
             sample_size,
             args: Value::Object(args),
-        })
-    }
-}
-
-impl<'de> Visitor<'de> for ConfigVisitor<'de, Vec<RunConfig>> {
-    type Value = Vec<RunConfig>;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        formatter.write_str("a sequence of RunConfig objects")
-    }
-
-    fn visit_seq<S>(self, mut seq: S) -> Result<Self::Value, S::Error>
-    where
-        S: SeqAccess<'de>,
-    {
-        let mut runs = Vec::with_capacity(seq.size_hint().unwrap_or(0));
-
-        while let Some(run) = seq.next_element_seed(self.seed.clone().cast::<RunConfig>())? {
-            runs.push(run);
-        }
-
-        Ok(runs)
-    }
-}
-
-impl<'de> Visitor<'de> for ConfigVisitor<'de, RunConfig> {
-    type Value = RunConfig;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        formatter.write_str("a RunConfig object")
-    }
-
-    fn visit_map<M>(self, mut map: M) -> Result<Self::Value, M::Error>
-    where
-        M: MapAccess<'de>,
-    {
-        let mut name: Option<String> = None;
-        let mut template: Option<PathBuf> = None;
-        let mut extra = HashMap::new();
-
-        while let Some(key) = map.next_key::<String>()? {
-            match key.as_str() {
-                "name" => {
-                    if name.is_some() {
-                        return Err(serde::de::Error::duplicate_field("name"));
-                    }
-                    name = Some(map.next_value()?);
-                }
-                "template" => {
-                    if template.is_some() {
-                        return Err(serde::de::Error::duplicate_field("template"));
-                    }
-                    template = Some(map.next_value()?);
-                }
-                _ => {
-                    let value = map.next_value_seed(self.seed.clone().cast::<ContextValue>())?;
-                    extra.insert(key, value);
-                }
-            }
-        }
-
-        let name = name.ok_or_else(|| serde::de::Error::missing_field("name"))?;
-        let template = template.ok_or_else(|| serde::de::Error::missing_field("template"))?;
-
-        Ok(RunConfig {
-            name,
-            template,
-            extra,
         })
     }
 }

@@ -327,18 +327,15 @@ fn run_cmd(args: CmdArgs, ctx: &mut Context) -> Result<bool, CmdError> {
 
     if let Some(key) = args.exit_code_key {
         let code = status.code().unwrap_or(-1) as i64;
-        ctx.run
-            .extra
+        ctx.data
             .insert(key, ContextValue::Prim(PrimitiveContextValue::Int(code)));
     }
     if let (Some(key), Some(data)) = (stdout_key, stdout_data) {
-        ctx.run
-            .extra
+        ctx.data
             .insert(key, ContextValue::Prim(PrimitiveContextValue::String(data)));
     }
     if let (Some(key), Some(data)) = (stderr_key, stderr_data) {
-        ctx.run
-            .extra
+        ctx.data
             .insert(key, ContextValue::Prim(PrimitiveContextValue::String(data)));
     }
 
@@ -422,7 +419,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            ctx.run.extra.get("code"),
+            ctx.data.get("code"),
             Some(&ContextValue::Prim(PrimitiveContextValue::Int(1)))
         );
     }
@@ -437,7 +434,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            ctx.run.extra.get("out"),
+            ctx.data.get("out"),
             Some(&ContextValue::Prim(PrimitiveContextValue::String(
                 "hello\n".into()
             )))
@@ -458,7 +455,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            ctx.run.extra.get("out"),
+            ctx.data.get("out"),
             Some(&ContextValue::Prim(PrimitiveContextValue::String(
                 "world".into()
             )))
@@ -477,7 +474,7 @@ mod tests {
             .next()
             .unwrap();
 
-        match ctx.run.extra.get("err") {
+        match ctx.data.get("err") {
             Some(ContextValue::Prim(PrimitiveContextValue::String(s))) => {
                 assert!(!s.is_empty());
             }
@@ -510,7 +507,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            ctx.run.extra.get("out"),
+            ctx.data.get("out"),
             Some(&ContextValue::Prim(PrimitiveContextValue::String(
                 "hello world\n".into()
             )))
@@ -531,7 +528,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            ctx.run.extra.get("out"),
+            ctx.data.get("out"),
             Some(&ContextValue::Prim(PrimitiveContextValue::String(
                 "sentinel\n".into()
             )))
@@ -558,7 +555,7 @@ mod tests {
 
         // printenv exits 1 when the variable is not set
         assert_eq!(
-            ctx.run.extra.get("code"),
+            ctx.data.get("code"),
             Some(&ContextValue::Prim(PrimitiveContextValue::Int(1)))
         );
     }
@@ -577,7 +574,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            ctx.run.extra.get("out"),
+            ctx.data.get("out"),
             Some(&ContextValue::Prim(PrimitiveContextValue::String(
                 "/tmp\n".into()
             )))
