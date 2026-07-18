@@ -46,6 +46,7 @@ mod tests {
     use crate::pipeline::make_ctx_with_extras;
     use pgaf_sdk::context::ContextValue;
     use pgaf_sdk::pipeline::PipelineStepTypeArgs;
+    use std::sync::Arc;
 
     fn prim(v: PrimitiveContextValue) -> ContextValue {
         ContextValue::Prim(v)
@@ -61,7 +62,7 @@ mod tests {
             [("foo".into(), prim(PrimitiveContextValue::Bool(false)))].into(),
         );
         let mut result: Vec<_> = UNSET_DRIVER
-            .invoke(args, Box::new(vec![ctx].into_iter()))
+            .invoke(Arc::new(args), Box::new(vec![ctx].into_iter()))
             .collect();
         let ctx = result.remove(0);
         assert!(!ctx.data.contains_key("foo"));
@@ -77,7 +78,7 @@ mod tests {
             [("foo".into(), prim(PrimitiveContextValue::Bool(true)))].into(),
         );
         let mut result: Vec<_> = UNSET_DRIVER
-            .invoke(args, Box::new(vec![ctx].into_iter()))
+            .invoke(Arc::new(args), Box::new(vec![ctx].into_iter()))
             .collect();
         let ctx = result.remove(0);
         assert!(ctx.data.contains_key("foo"));
@@ -97,7 +98,7 @@ mod tests {
             .into(),
         );
         let mut result: Vec<_> = UNSET_DRIVER
-            .invoke(args, Box::new(vec![ctx].into_iter()))
+            .invoke(Arc::new(args), Box::new(vec![ctx].into_iter()))
             .collect();
         let ctx = result.remove(0);
         assert!(ctx.data.contains_key("foo"));

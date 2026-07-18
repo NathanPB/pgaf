@@ -5,6 +5,7 @@ use serde::de::DeserializeOwned;
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::marker::PhantomData;
+use std::sync::Arc;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum PipelineStepTypeArgs {
@@ -68,16 +69,16 @@ impl<F: PipelineStepType<A> + 'static, A: DeserializeOwned + 'static> PipelineSt
 }
 
 type InvokeFn = fn(
-    PipelineStepTypeArgs,
+    Arc<PipelineStepTypeArgs>,
     Box<dyn Iterator<Item = Context>>,
 ) -> Box<dyn Iterator<Item = Context>>;
 
 fn invoker_impl<F: PipelineStepType<A>, A: DeserializeOwned + 'static>(
-    args: PipelineStepTypeArgs,
+    args: Arc<PipelineStepTypeArgs>,
     input: Box<dyn Iterator<Item = Context>>,
 ) -> Box<dyn Iterator<Item = Context>> {
     let deserialized = Box::new(input.filter_map(move |ctx| {
-        let a = deserializer::deserialize_args::<A>(args.clone(), &ctx)
+        let a = deserializer::deserialize_args::<A>(&args, &ctx)
             .inspect_err(|e| eprintln!("Pipeline step error at unit {}: {e}", ctx.unit.id))
             .ok()?;
         Some((a, ctx))
@@ -102,7 +103,7 @@ impl Driver {
     /// returned iterator is driven.
     pub fn invoke(
         &self,
-        args: PipelineStepTypeArgs,
+        args: Arc<PipelineStepTypeArgs>,
         input: Box<dyn Iterator<Item = Context>>,
     ) -> Box<dyn Iterator<Item = Context>> {
         self.0(args, input)

@@ -207,6 +207,7 @@ mod tests {
     use crate::pipeline::make_ctx_with_extras;
     use pgaf_sdk::context::{ContextValue, PrimitiveContextValue};
     use pgaf_sdk::pipeline::PipelineStepTypeArgs;
+    use std::sync::Arc;
     use std::collections::HashMap;
 
     fn map_args(
@@ -242,7 +243,7 @@ mod tests {
 
         let ctx = make_ctx_with_extras(1, extras([]));
         let ctx = TEMPLATE_DRIVER
-            .invoke(args, Box::new(vec![ctx].into_iter()))
+            .invoke(Arc::new(args), Box::new(vec![ctx].into_iter()))
             .next()
             .unwrap();
 
@@ -263,7 +264,7 @@ mod tests {
 
         let ctx = make_ctx_with_extras(1, extras([("greeting", "hi there")]));
         let ctx = TEMPLATE_DRIVER
-            .invoke(args, Box::new(vec![ctx].into_iter()))
+            .invoke(Arc::new(args), Box::new(vec![ctx].into_iter()))
             .next()
             .unwrap();
 
@@ -287,7 +288,7 @@ mod tests {
 
         let ctx = make_ctx_with_extras(1, extras([("val", "ok")]));
         let ctx = TEMPLATE_DRIVER
-            .invoke(args, Box::new(vec![ctx].into_iter()))
+            .invoke(Arc::new(args), Box::new(vec![ctx].into_iter()))
             .next()
             .unwrap();
 
@@ -309,7 +310,7 @@ mod tests {
 
         let ctx = make_ctx_with_extras(1, extras([]));
         let result: Vec<_> = TEMPLATE_DRIVER
-            .invoke(args, Box::new(vec![ctx].into_iter()))
+            .invoke(Arc::new(args), Box::new(vec![ctx].into_iter()))
             .collect();
 
         assert_eq!(result.len(), 1);
@@ -327,7 +328,7 @@ mod tests {
 
         let ctx = make_ctx_with_extras(1, extras([]));
         let ctx = TEMPLATE_DRIVER
-            .invoke(args, Box::new(vec![ctx].into_iter()))
+            .invoke(Arc::new(args), Box::new(vec![ctx].into_iter()))
             .next()
             .unwrap();
 
@@ -349,7 +350,7 @@ mod tests {
         ]);
         let ctx = make_ctx_with_extras(1, extras([]));
         let result: Vec<_> = TEMPLATE_DRIVER
-            .invoke(args, Box::new(vec![ctx].into_iter()))
+            .invoke(Arc::new(args), Box::new(vec![ctx].into_iter()))
             .collect();
 
         assert!(result.is_empty());
@@ -360,7 +361,7 @@ mod tests {
         let args = map_args([("output", str_val("out"))]);
         let ctx = make_ctx_with_extras(1, extras([]));
         let result: Vec<_> = TEMPLATE_DRIVER
-            .invoke(args, Box::new(vec![ctx].into_iter()))
+            .invoke(Arc::new(args), Box::new(vec![ctx].into_iter()))
             .collect();
         assert!(result.is_empty());
     }

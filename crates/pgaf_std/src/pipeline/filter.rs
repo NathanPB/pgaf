@@ -38,6 +38,7 @@ mod tests {
     use crate::pipeline::make_ctx;
     use pgaf_sdk::context::{ContextValue, PrimitiveContextValue};
     use pgaf_sdk::pipeline::PipelineStepTypeArgs;
+    use std::sync::Arc;
 
     fn prim(v: PrimitiveContextValue) -> ContextValue {
         ContextValue::Prim(v)
@@ -48,7 +49,7 @@ mod tests {
         let ctxs = vec![make_ctx(1), make_ctx(2)];
         let args = PipelineStepTypeArgs::One(prim(PrimitiveContextValue::Bool(true)));
         let result: Vec<_> = FILTER_DRIVER
-            .invoke(args, Box::new(ctxs.into_iter()))
+            .invoke(Arc::new(args), Box::new(ctxs.into_iter()))
             .collect();
         assert_eq!(result.len(), 2);
     }
@@ -58,7 +59,7 @@ mod tests {
         let ctxs = vec![make_ctx(1), make_ctx(2)];
         let args = PipelineStepTypeArgs::One(prim(PrimitiveContextValue::Bool(false)));
         let result: Vec<_> = FILTER_DRIVER
-            .invoke(args, Box::new(ctxs.into_iter()))
+            .invoke(Arc::new(args), Box::new(ctxs.into_iter()))
             .collect();
         assert!(result.is_empty());
     }
@@ -68,7 +69,7 @@ mod tests {
         let ctxs = vec![make_ctx(1)];
         let args = PipelineStepTypeArgs::One(prim(PrimitiveContextValue::Int(42)));
         let result: Vec<_> = FILTER_DRIVER
-            .invoke(args, Box::new(ctxs.into_iter()))
+            .invoke(Arc::new(args), Box::new(ctxs.into_iter()))
             .collect();
 
         assert_eq!(result.len(), 1);

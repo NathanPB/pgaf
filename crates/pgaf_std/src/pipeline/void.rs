@@ -34,6 +34,7 @@ mod tests {
     use crate::pipeline::{make_ctx, make_ctx_with_extras};
     use pgaf_sdk::context::{ContextValue, PrimitiveContextValue};
     use pgaf_sdk::pipeline::PipelineStepTypeArgs;
+    use std::sync::Arc;
 
     fn one(v: PrimitiveContextValue) -> PipelineStepTypeArgs {
         PipelineStepTypeArgs::One(ContextValue::Prim(v))
@@ -43,7 +44,7 @@ mod tests {
     fn null_passes_through() {
         let ctxs = vec![make_ctx(1), make_ctx(2)];
         let result: Vec<_> = VOID_DRIVER
-            .invoke(one(PrimitiveContextValue::Null), Box::new(ctxs.into_iter()))
+            .invoke(Arc::new(one(PrimitiveContextValue::Null)), Box::new(ctxs.into_iter()))
             .collect();
         assert_eq!(result.len(), 2);
     }
@@ -53,7 +54,7 @@ mod tests {
         let ctxs = vec![make_ctx(1), make_ctx(2)];
         let result: Vec<_> = VOID_DRIVER
             .invoke(
-                one(PrimitiveContextValue::Bool(true)),
+                Arc::new(one(PrimitiveContextValue::Bool(true))),
                 Box::new(ctxs.into_iter()),
             )
             .collect();
@@ -65,7 +66,7 @@ mod tests {
         let ctxs = vec![make_ctx(1)];
         let result: Vec<_> = VOID_DRIVER
             .invoke(
-                one(PrimitiveContextValue::String("hello".into())),
+                Arc::new(one(PrimitiveContextValue::String("hello".into()))),
                 Box::new(ctxs.into_iter()),
             )
             .collect();
@@ -82,7 +83,7 @@ mod tests {
         let ctx = make_ctx_with_extras(1, extras);
         let args = PipelineStepTypeArgs::One(ContextValue::Ident("status".into()));
         let result: Vec<_> = VOID_DRIVER
-            .invoke(args, Box::new(vec![ctx].into_iter()))
+            .invoke(Arc::new(args), Box::new(vec![ctx].into_iter()))
             .collect();
         assert_eq!(result.len(), 1);
     }
@@ -92,7 +93,7 @@ mod tests {
         let ctx = make_ctx(7);
         let result: Vec<_> = VOID_DRIVER
             .invoke(
-                one(PrimitiveContextValue::Bool(false)),
+                Arc::new(one(PrimitiveContextValue::Bool(false))),
                 Box::new(vec![ctx].into_iter()),
             )
             .collect();

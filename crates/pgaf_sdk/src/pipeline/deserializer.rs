@@ -30,18 +30,18 @@ impl<'de> Deserializer<'de> for PrimDeserializer {
 }
 
 pub fn deserialize_args<A: serde::de::DeserializeOwned>(
-    args: PipelineStepTypeArgs,
+    args: &PipelineStepTypeArgs,
     ctx: &Context,
 ) -> Result<A, PipelineStepTypeArgParseError> {
     A::deserialize(ArgsDeserializer { args, ctx })
 }
 
-struct ArgsDeserializer<'ctx> {
-    args: PipelineStepTypeArgs,
+struct ArgsDeserializer<'a, 'ctx> {
+    args: &'a PipelineStepTypeArgs,
     ctx: &'ctx Context,
 }
 
-impl<'de, 'ctx> Deserializer<'de> for ArgsDeserializer<'ctx> {
+impl<'de, 'a, 'ctx> Deserializer<'de> for ArgsDeserializer<'a, 'ctx> {
     type Error = PipelineStepTypeArgParseError;
 
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -54,11 +54,11 @@ impl<'de, 'ctx> Deserializer<'de> for ArgsDeserializer<'ctx> {
                 PrimDeserializer(prim).deserialize_any(visitor)
             }
             PipelineStepTypeArgs::Array(values) => visitor.visit_seq(ContextSeqAccess {
-                iter: values.into_iter(),
+                iter: values.iter(),
                 ctx: self.ctx,
             }),
             PipelineStepTypeArgs::Map(map) => visitor.visit_map(ContextMapAccess {
-                iter: map.into_iter(),
+                iter: map.iter(),
                 ctx: self.ctx,
                 current_value: None,
             }),
@@ -91,13 +91,13 @@ impl<'de, 'ctx> Deserializer<'de> for ArgsDeserializer<'ctx> {
     }
 }
 
-struct ContextMapAccess<'ctx> {
-    iter: std::collections::hash_map::IntoIter<String, ContextValue>,
+struct ContextMapAccess<'a, 'ctx> {
+    iter: std::collections::hash_map::Iter<'a, String, ContextValue>,
     ctx: &'ctx Context,
-    current_value: Option<ContextValue>,
+    current_value: Option<&'a ContextValue>,
 }
 
-impl<'de, 'ctx> MapAccess<'de> for ContextMapAccess<'ctx> {
+impl<'de, 'a, 'ctx> MapAccess<'de> for ContextMapAccess<'a, 'ctx> {
     type Error = PipelineStepTypeArgParseError;
 
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error>
@@ -108,7 +108,7 @@ impl<'de, 'ctx> MapAccess<'de> for ContextMapAccess<'ctx> {
             Some((key, value)) => {
                 self.current_value = Some(value);
                 seed.deserialize(StringDeserializer::<PipelineStepTypeArgParseError>::new(
-                    key,
+                    key.clone(),
                 ))
                 .map(Some)
             }
@@ -129,12 +129,12 @@ impl<'de, 'ctx> MapAccess<'de> for ContextMapAccess<'ctx> {
     }
 }
 
-struct ContextSeqAccess<'ctx> {
-    iter: std::vec::IntoIter<ContextValue>,
+struct ContextSeqAccess<'a, 'ctx> {
+    iter: std::slice::Iter<'a, ContextValue>,
     ctx: &'ctx Context,
 }
 
-impl<'de, 'ctx> SeqAccess<'de> for ContextSeqAccess<'ctx> {
+impl<'de, 'a, 'ctx> SeqAccess<'de> for ContextSeqAccess<'a, 'ctx> {
     type Error = PipelineStepTypeArgParseError;
 
     fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>, Self::Error>
@@ -158,6 +158,7 @@ mod tests {
     use crate::domain::{ExecutionUnit, UnitId};
     use serde::Deserialize;
     use std::collections::HashMap;
+    use std::sync::Arc;
 
     fn make_ctx() -> Context {
         make_ctx_with_id(1)
@@ -183,7 +184,7 @@ mod tests {
         args: PipelineStepTypeArgs,
         ctxs: Vec<Context>,
     ) -> Vec<Context> {
-        driver.invoke(args, Box::new(ctxs.into_iter())).collect()
+        driver.invoke(Arc::new(args), Box::new(ctxs.into_iter())).collect()
     }
 
     // --- One ---
@@ -429,12 +430,12 @@ mod tests {
             PipelineStepTypeDriver::<FilterEvenIds, ()>::default().coerce_to_dynamic();
 
         let stream = driver_dup.invoke(
-            PipelineStepTypeArgs::One(prim(PrimitiveContextValue::Int(3))),
+            Arc::new(PipelineStepTypeArgs::One(prim(PrimitiveContextValue::Int(3)))),
             Box::new(ctxs.into_iter()),
         );
         let output: Vec<Context> = driver_filt
             .invoke(
-                PipelineStepTypeArgs::One(prim(PrimitiveContextValue::Null)),
+                Arc::new(PipelineStepTypeArgs::One(prim(PrimitiveContextValue::Null))),
                 stream,
             )
             .collect();

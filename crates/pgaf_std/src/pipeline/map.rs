@@ -34,6 +34,7 @@ mod tests {
     use super::*;
     use crate::pipeline::make_ctx;
     use pgaf_sdk::pipeline::PipelineStepTypeArgs;
+    use std::sync::Arc;
 
     #[test]
     fn upserts_values() {
@@ -52,7 +53,7 @@ mod tests {
             .into(),
         );
         let mut result: Vec<_> = MAP_DRIVER
-            .invoke(args, Box::new(vec![ctx].into_iter()))
+            .invoke(Arc::new(args), Box::new(vec![ctx].into_iter()))
             .collect();
         assert_eq!(result.len(), 1);
         let ctx = result.remove(0);
@@ -83,7 +84,7 @@ mod tests {
             .into(),
         );
         let mut result: Vec<_> = MAP_DRIVER
-            .invoke(args, Box::new(vec![ctx].into_iter()))
+            .invoke(Arc::new(args), Box::new(vec![ctx].into_iter()))
             .collect();
         let ctx = result.remove(0);
         assert_eq!(

@@ -33,10 +33,12 @@ impl<'a> ProcessorBuilder<'a> {
             .map(|it| {
                 (
                     it.driver.clone(),
-                    PipelineStepTypeArgsDeserializer(deserializer.clone())
-                        .deserialize(it.args.clone())
-                        .expect("Failed to deserialize pipeline step arguments.")
-                        .0,
+                    Arc::new(
+                        PipelineStepTypeArgsDeserializer(deserializer.clone())
+                            .deserialize(it.args.clone())
+                            .expect("Failed to deserialize pipeline step arguments.")
+                            .0,
+                    ),
                 )
             })
             .collect();
@@ -59,7 +61,7 @@ impl<'a> ProcessorBuilder<'a> {
 
 pub struct Processor {
     ctx_gen: ContextGenerator,
-    pipeline: Vec<(pipeline::Driver, pipeline::PipelineStepTypeArgs)>,
+    pipeline: Vec<(pipeline::Driver, Arc<pipeline::PipelineStepTypeArgs>)>,
     workers: usize,
 }
 
@@ -74,9 +76,9 @@ impl Processor {
                 let pipeline = Arc::clone(&pipeline);
                 thread::spawn(move || {
                     let stream = Box::new(rx.into_iter()) as Box<dyn Iterator<Item = _>>;
-                    let result = pipeline
-                        .iter()
-                        .fold(stream, |s, (driver, args)| driver.invoke(args.clone(), s));
+                    let result = pipeline.iter().fold(stream, |s, (driver, args)| {
+                        driver.invoke(Arc::clone(args), s)
+                    });
 
                     for _ in result {
                         // Let it sink

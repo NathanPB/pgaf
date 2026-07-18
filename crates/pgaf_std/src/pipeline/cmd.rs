@@ -356,6 +356,7 @@ mod tests {
     use pgaf_sdk::context::{ContextValue, PrimitiveContextValue};
     use pgaf_sdk::pipeline::PipelineStepTypeArgs;
     use std::collections::HashMap;
+    use std::sync::Arc;
 
     fn map_args(
         pairs: impl IntoIterator<Item = (&'static str, ContextValue)>,
@@ -381,7 +382,7 @@ mod tests {
         let args = map_args([("cmd", str("true")), ("fail_non_zero", bool(true))]);
 
         let result: Vec<_> = CMD_DRIVER
-            .invoke(args, Box::new(vec![make_ctx(1)].into_iter()))
+            .invoke(Arc::new(args), Box::new(vec![make_ctx(1)].into_iter()))
             .collect();
 
         assert_eq!(result.len(), 1);
@@ -392,7 +393,7 @@ mod tests {
         let args = map_args([("cmd", str("false")), ("fail_non_zero", bool(true))]);
 
         let result: Vec<_> = CMD_DRIVER
-            .invoke(args, Box::new(vec![make_ctx(1), make_ctx(2)].into_iter()))
+            .invoke(Arc::new(args), Box::new(vec![make_ctx(1), make_ctx(2)].into_iter()))
             .collect();
 
         assert!(result.is_empty());
@@ -403,7 +404,7 @@ mod tests {
         let args = map_args([("cmd", str("false"))]);
 
         let result: Vec<_> = CMD_DRIVER
-            .invoke(args, Box::new(vec![make_ctx(1)].into_iter()))
+            .invoke(Arc::new(args), Box::new(vec![make_ctx(1)].into_iter()))
             .collect();
 
         assert_eq!(result.len(), 1);
@@ -414,7 +415,7 @@ mod tests {
         let args = map_args([("cmd", str("false")), ("exit_code_key", str("code"))]);
 
         let ctx = CMD_DRIVER
-            .invoke(args, Box::new(vec![make_ctx(1)].into_iter()))
+            .invoke(Arc::new(args), Box::new(vec![make_ctx(1)].into_iter()))
             .next()
             .unwrap();
 
@@ -429,7 +430,7 @@ mod tests {
         let args = map_args([("cmd", str("echo hello")), ("stdout", str("out"))]);
 
         let ctx = CMD_DRIVER
-            .invoke(args, Box::new(vec![make_ctx(1)].into_iter()))
+            .invoke(Arc::new(args), Box::new(vec![make_ctx(1)].into_iter()))
             .next()
             .unwrap();
 
@@ -450,7 +451,7 @@ mod tests {
         ]);
 
         let ctx = CMD_DRIVER
-            .invoke(args, Box::new(vec![make_ctx(1)].into_iter()))
+            .invoke(Arc::new(args), Box::new(vec![make_ctx(1)].into_iter()))
             .next()
             .unwrap();
 
@@ -470,7 +471,7 @@ mod tests {
         ]);
 
         let ctx = CMD_DRIVER
-            .invoke(args, Box::new(vec![make_ctx(1)].into_iter()))
+            .invoke(Arc::new(args), Box::new(vec![make_ctx(1)].into_iter()))
             .next()
             .unwrap();
 
@@ -491,7 +492,7 @@ mod tests {
         ]);
 
         let result: Vec<_> = CMD_DRIVER
-            .invoke(args, Box::new(vec![make_ctx(1)].into_iter()))
+            .invoke(Arc::new(args), Box::new(vec![make_ctx(1)].into_iter()))
             .collect();
 
         assert!(result.is_empty());
@@ -502,7 +503,7 @@ mod tests {
         let args = map_args([("cmd", str("echo 'hello world'")), ("stdout", str("out"))]);
 
         let ctx = CMD_DRIVER
-            .invoke(args, Box::new(vec![make_ctx(1)].into_iter()))
+            .invoke(Arc::new(args), Box::new(vec![make_ctx(1)].into_iter()))
             .next()
             .unwrap();
 
@@ -523,7 +524,7 @@ mod tests {
         ]);
 
         let ctx = CMD_DRIVER
-            .invoke(args, Box::new(vec![make_ctx(1)].into_iter()))
+            .invoke(Arc::new(args), Box::new(vec![make_ctx(1)].into_iter()))
             .next()
             .unwrap();
 
@@ -549,7 +550,7 @@ mod tests {
         ]);
 
         let ctx = CMD_DRIVER
-            .invoke(args, Box::new(vec![make_ctx(1)].into_iter()))
+            .invoke(Arc::new(args), Box::new(vec![make_ctx(1)].into_iter()))
             .next()
             .unwrap();
 
@@ -569,7 +570,7 @@ mod tests {
         ]);
 
         let ctx = CMD_DRIVER
-            .invoke(args, Box::new(vec![make_ctx(1)].into_iter()))
+            .invoke(Arc::new(args), Box::new(vec![make_ctx(1)].into_iter()))
             .next()
             .unwrap();
 
