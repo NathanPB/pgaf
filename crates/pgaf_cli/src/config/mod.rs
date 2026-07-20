@@ -1,10 +1,13 @@
 mod deserialize;
+mod validate;
 
 use clap::Parser;
-pub use deserialize::ConfigDeserializeSeed;
-use pgaf_sdk::config::Config;
-use serde::de::DeserializeSeed;
+use deserialize::deserialize_public_identifier;
+use pgaf_sdk::registry;
+use serde::{Deserialize, Serialize};
+use serde_inline_default::serde_inline_default;
 use std::path::PathBuf;
+use validate::{RE_PIPELINE_STEP_NAME, validate_unique_pipeline_names};
 use validator::{Validate, ValidationError};
 
 #[derive(thiserror::Error, Debug)]
@@ -15,6 +18,34 @@ pub enum ConfigError {
     ConfigLoadError(Box<dyn std::error::Error>),
     #[error("Arguments validation failed: {0}")]
     ArgsValidationError(#[from] ValidationError),
+}
+
+#[serde_inline_default]
+#[derive(Validate, Debug, Deserialize, Clone)]
+pub struct Config {
+    pub domain: DomainConfig,
+
+    #[validate(nested)]
+    #[validate(custom(function = "validate_unique_pipeline_names"))]
+    pub pipeline: Vec<PipelineStep>,
+}
+
+#[derive(Validate, Debug, Deserialize, Clone)]
+pub struct DomainConfig {
+    #[serde(deserialize_with = "deserialize_public_identifier")]
+    pub r#type: registry::PublicIdentifier,
+    pub sample_size: Option<usize>,
+    #[serde(flatten)]
+    pub args: serde_json::Value,
+}
+
+#[derive(Validate, Serialize, Deserialize, Clone, Debug)]
+pub struct PipelineStep {
+    #[validate(regex(path = *RE_PIPELINE_STEP_NAME, message = "Pipeline name must be alphanumeric and contain only underscores and dashes"))]
+    pub name: String,
+    #[serde(deserialize_with = "deserialize_public_identifier")]
+    pub r#type: registry::PublicIdentifier,
+    pub args: serde_json::Value,
 }
 
 #[derive(Validate, Parser, Debug)]
@@ -40,7 +71,7 @@ fn validate(args: &Args, config: &Config) -> Result<(), ConfigError> {
     Ok(())
 }
 
-pub fn init(seed: ConfigDeserializeSeed) -> Result<(Config, Args, PathBuf), ConfigError> {
+pub fn init() -> Result<(Config, Args, PathBuf), ConfigError> {
     let args = Args::parse();
     let path = PathBuf::from(&args.config_file.clone());
     if !path.exists() || !path.is_file() {
@@ -50,8 +81,7 @@ pub fn init(seed: ConfigDeserializeSeed) -> Result<(Config, Args, PathBuf), Conf
     let json_str = std::fs::read_to_string(args.config_file.clone())
         .map_err(|e| ConfigError::ConfigLoadError(Box::new(e)))?;
 
-    let config: Config = seed
-        .deserialize(&mut serde_json::Deserializer::from_str(&json_str))
+    let config: Config = serde_json::de::from_str(&json_str)
         .map_err(|e| ConfigError::ConfigLoadError(Box::new(e)))?;
 
     validate(&args, &config)?;

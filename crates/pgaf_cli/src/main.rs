@@ -1,9 +1,7 @@
-use pgaf::config;
+use pgaf::{config, shared::STD_NAMESPACE};
 
 use pgaf_engine::processor::ProcessorBuilder;
 use pgaf_sdk::registry;
-
-static STD_NAMESPACE: &str = "std";
 
 fn main() {
     let mut registries = registry::Registries::default();
@@ -14,9 +12,7 @@ fn main() {
     pgaf_std::init(&namespace, &mut registries).expect("Failed to initialize stdlib.");
     println!("Initialized own resources on namespace \"{}\"", namespace);
 
-    let cfg_seed = config::ConfigDeserializeSeed::new(&registries, &namespace);
-
-    let cfg_result = config::init(cfg_seed);
+    let cfg_result = config::init();
     if let Err(e) = cfg_result {
         println!("{}", e);
         return;
@@ -28,14 +24,17 @@ fn main() {
         config_file.canonicalize().ok().unwrap().display()
     );
 
-    let processing = ProcessorBuilder {
-        config: &config,
-        workers: args.workers,
-        registries: &registries,
-        std_namespace: STD_NAMESPACE.to_string(),
-    }
-    .build()
-    .unwrap();
+    let mut processor = ProcessorBuilder::new(&registries, STD_NAMESPACE)
+        .set_domain_generator(&config.domain.r#type, &config.domain.args)
+        .expect("Failed to configure the domain generator.")
+        .set_sample_size(config.domain.sample_size)
+        .set_workers(args.workers);
 
-    processing.start();
+    for step in config.pipeline.iter() {
+        processor = processor
+            .add_pipeline_step(&step.name, &step.r#type, &step.args)
+            .expect("Failed to configure pipeline step.");
+    }
+
+    processor.build().start();
 }

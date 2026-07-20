@@ -8,6 +8,8 @@ use serde::de::{DeserializeSeed, Visitor};
 use std::collections::HashMap;
 
 pub struct PipelineStepTypeArgsWrapper(pub PipelineStepTypeArgs);
+
+#[derive(Clone)]
 pub struct PipelineStepTypeArgsDeserializer<'de>(pub ContextValueDeserializeSeed<'de>);
 struct PipelineStepTypeArgsDeserializerVisitor<'de>(ContextValueDeserializeSeed<'de>);
 

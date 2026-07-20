@@ -5,8 +5,6 @@ use pgaf_sdk::domain::{DomainGenerator, ExecutionUnit};
 ///
 /// The order of the generated [`Context`]s is determined by a permutation over the runs and the domain
 /// generator, prioritizing outputting all the runs before moving to the next [`ExecutionUnit`].
-///
-/// TODO: decouple from config. Maybe create a registry for [`DomainGenerator`] (abstract factory?) and couple it with config instead. Will allow for plugin extensibility later.
 pub struct ContextGenerator {
     domain_generator: Box<dyn DomainGenerator>,
     curr_unit: Option<ExecutionUnit>,
@@ -15,16 +13,13 @@ pub struct ContextGenerator {
 }
 
 impl ContextGenerator {
-    pub fn new(
-        domain_generator: Box<dyn DomainGenerator>,
-        sample_size: Option<usize>,
-    ) -> Result<Self, Box<dyn std::error::Error>> {
-        Ok(ContextGenerator {
+    pub fn new(domain_generator: Box<dyn DomainGenerator>, sample_size: Option<usize>) -> Self {
+        ContextGenerator {
             domain_generator,
             curr_unit: None,
             sample_size,
             current_count: 0,
-        })
+        }
     }
 }
 
@@ -65,7 +60,7 @@ mod tests {
                 lat: GeoDeg::from(0.0),
             }));
 
-        let generator = ContextGenerator::new(domain_src, Some(50)).unwrap();
+        let generator = ContextGenerator::new(domain_src, Some(50));
         assert_eq!(generator.count(), 50);
     }
 }
