@@ -43,9 +43,7 @@ impl Function<DbgFibArgs> for DbgFib {
         if !cfg!(debug_assertions) {
             static WARNING: Once = Once::new();
             WARNING.call_once(|| {
-                eprintln!(
-                    "warning: using `std::dbgfib` in non-debug builds. `std::dbgfib` is intended for development usage only."
-                );
+                tracing::warn!("dbgfib in release build");
             });
         }
 

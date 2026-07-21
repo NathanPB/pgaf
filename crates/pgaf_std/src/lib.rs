@@ -7,6 +7,7 @@ mod domain;
 mod function;
 mod pipeline;
 
+#[tracing::instrument(level = "debug", skip_all, fields(namespace = %namespace))]
 pub fn init(namespace: &Namespace, registries: &mut Registries) -> Result<(), RegistryError> {
     register_domaingen_drivers(namespace, registries.regmut_domaingen_drivers())?;
     register_function_drivers(namespace, registries.regmut_function_drivers())?;

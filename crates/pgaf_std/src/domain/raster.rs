@@ -251,8 +251,6 @@ mod tests {
             .to_string_lossy()
             .to_string();
 
-        dbg!(&testfile);
-
         let generator = RasterDomainGenerator::new(&testfile, 0).unwrap();
 
         let expected = vec![

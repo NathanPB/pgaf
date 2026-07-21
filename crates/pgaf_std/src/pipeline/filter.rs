@@ -13,17 +13,13 @@ impl PipelineStepType<PrimitiveContextValue> for Filter {
     fn invoke(
         stream: Box<dyn Iterator<Item = (PrimitiveContextValue, Context)>>,
     ) -> Box<dyn Iterator<Item = Context>> {
-        Box::new(stream.filter_map(|(args, ctx)| {
-            match args {
-                    PrimitiveContextValue::Bool(true) => Some(ctx),
-                    PrimitiveContextValue::Bool(false) => None,
-                    _ => {
-                        eprintln!(
-                            "filter: supplied parameter on unit ID {} does not evaluate to boolean, nooping", ctx.unit.id
-                        );
-                        Some(ctx)
-                    }
-                }
+        Box::new(stream.filter_map(|(args, ctx)| match args {
+            PrimitiveContextValue::Bool(true) => Some(ctx),
+            PrimitiveContextValue::Bool(false) => None,
+            _ => {
+                tracing::warn!(unit.id = %ctx.unit.id, "filter arg not boolean");
+                Some(ctx)
+            }
         }))
     }
 }

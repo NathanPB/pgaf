@@ -213,7 +213,7 @@ impl PipelineStepType<CmdArgs> for Cmd {
                 Ok(true) => Some(ctx),
                 Ok(false) => None,
                 Err(e) => {
-                    eprintln!("cmd: error at unit {unit_id}: {e}");
+                    tracing::warn!(unit.id = %unit_id, error = %e, "cmd failed");
                     None
                 }
             }

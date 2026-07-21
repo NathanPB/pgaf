@@ -141,7 +141,7 @@ impl PipelineStepType<TemplateArgs> for Template {
             match render(args, &mut ctx) {
                 Ok(()) => Some(ctx),
                 Err(e) => {
-                    eprintln!("template: error at unit {unit_id}: {e}");
+                    tracing::warn!(unit.id = %unit_id, error = %e, "template failed");
                     None
                 }
             }

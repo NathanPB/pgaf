@@ -23,9 +23,10 @@ impl PipelineStepType<HashMap<String, PrimitiveContextValue>> for Unset {
                     }
                     PrimitiveContextValue::Bool(true) => {}
                     _ => {
-                        eprintln!(
-                            "unset: key '{}' on unit {} has a non-boolean predicate, nooping",
-                            key, ctx.unit.id
+                        tracing::warn!(
+                            unit.id = %ctx.unit.id,
+                            key = %key,
+                            "unset predicate not boolean"
                         );
                     }
                 }
