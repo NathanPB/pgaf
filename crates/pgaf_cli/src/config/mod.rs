@@ -8,22 +8,26 @@ use serde::{Deserialize, Serialize};
 use serde_inline_default::serde_inline_default;
 use std::path::PathBuf;
 use validate::{RE_GENERAL_NAME, validate_unique_pipeline_names, validate_unique_sink_names};
-use validator::{Validate, ValidationError};
+use validator::{Validate, ValidationErrors};
 
 #[derive(thiserror::Error, Debug)]
 pub enum ConfigError {
-    #[error("Config file not found at path {0}")]
-    ConfigFileNotFound(PathBuf),
-    #[error("Config load failed: {0}")]
-    ConfigLoadError(Box<dyn std::error::Error>),
-    #[error("Arguments validation failed: {0}")]
-    ArgsValidationError(#[from] ValidationError),
+    #[error("Workload file not found.")]
+    WorkloadFileNotFound(PathBuf),
+    #[error("Failed to validate workload: {0}")]
+    WorkloadValidation(ValidationErrors),
+    #[error("Failed to parse the workload file: {0}")]
+    WorkloadJsonParse(serde_json::Error),
+    #[error("Failed to parse the workload file: {0}")]
+    WorkloadYamlParse(serde_saphyr::Error),
+    #[error(transparent)]
+    IO(#[from] std::io::Error),
 }
 
 #[serde_inline_default]
 #[derive(Validate, Debug, Deserialize, Clone)]
-pub struct Config {
-    pub domain: DomainConfig,
+pub struct Workload {
+    pub domain: Domain,
 
     #[validate(nested)]
     #[validate(custom(function = "validate_unique_pipeline_names"))]
@@ -36,7 +40,7 @@ pub struct Config {
 }
 
 #[derive(Validate, Debug, Deserialize, Clone)]
-pub struct DomainConfig {
+pub struct Domain {
     #[serde(deserialize_with = "deserialize_public_identifier")]
     pub r#type: registry::PublicIdentifier,
     pub sample_size: Option<usize>,
@@ -62,53 +66,43 @@ pub struct Sink {
     pub args: serde_json::Value,
 }
 
-#[derive(Validate, Parser, Debug)]
+#[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct Args {
-    /// Path to the JSON or YAML configuration file.
+    /// Path to the JSON or YAML workload spec file.
     #[arg(short, long)]
-    pub config_file: PathBuf,
+    pub workload_file: PathBuf,
 
-    /// Number of workers to use for parallel processing. If 0, will use all available cores.
+    /// Number of threads to use for parallel processing. If 0, will use all available cores.
     #[arg(short, long, default_value_t = 0)]
-    pub workers: usize,
+    pub threads: usize,
 }
 
-fn validate(args: &Args, config: &Config) -> Result<(), ConfigError> {
-    args.validate()
-        .map_err(|e| ConfigError::ConfigLoadError(Box::new(e)))?;
-
-    config
-        .validate()
-        .map_err(|e| ConfigError::ConfigLoadError(Box::new(e)))?;
-
-    Ok(())
-}
-
-pub fn init() -> Result<(Config, Args), ConfigError> {
+pub fn init() -> Result<(Workload, Args), ConfigError> {
     let args = Args::parse();
-    if !args.config_file.exists() || !args.config_file.is_file() {
-        return Err(ConfigError::ConfigFileNotFound(args.config_file.clone()));
+    if !args.workload_file.exists() || !args.workload_file.is_file() {
+        return Err(ConfigError::WorkloadFileNotFound(
+            args.workload_file.clone(),
+        ));
     }
 
-    let config_contents = std::fs::read_to_string(&args.config_file)
-        .map_err(|e| ConfigError::ConfigLoadError(Box::new(e)))?;
+    let workload_contents = std::fs::read_to_string(&args.workload_file)?;
 
     let is_yaml = args
-        .config_file
+        .workload_file
         .extension()
         .map(|ext| ext == "yml" || ext == "yaml")
         .unwrap_or(false);
 
-    let config: Config = if is_yaml {
-        serde_saphyr::from_str(&config_contents)
-            .map_err(|e| ConfigError::ConfigLoadError(Box::new(e)))?
+    let workload: Workload = if is_yaml {
+        serde_saphyr::from_str(&workload_contents).map_err(ConfigError::WorkloadYamlParse)?
     } else {
-        serde_json::de::from_str(&config_contents)
-            .map_err(|e| ConfigError::ConfigLoadError(Box::new(e)))?
+        serde_json::de::from_str(&workload_contents).map_err(ConfigError::WorkloadJsonParse)?
     };
 
-    validate(&args, &config)?;
+    workload
+        .validate()
+        .map_err(ConfigError::WorkloadValidation)?;
 
-    Ok((config, args))
+    Ok((workload, args))
 }

@@ -1,4 +1,7 @@
-use pgaf::{config, shared::STD_NAMESPACE};
+use pgaf::{
+    config::{self, ConfigError},
+    shared::STD_NAMESPACE,
+};
 
 use pgaf_engine::processor::ProcessorBuilder;
 use pgaf_sdk::registry;
@@ -12,31 +15,51 @@ fn main() {
     pgaf_std::init(&namespace, &mut registries).expect("Failed to initialize stdlib.");
     println!("Initialized own resources on namespace \"{}\"", namespace);
 
-    let cfg_result = config::init();
-    if let Err(e) = cfg_result {
-        println!("{}", e);
-        return;
-    }
+    let (workload, args) = match config::init() {
+        Ok(cfg) => cfg,
+        Err(ConfigError::WorkloadFileNotFound(file)) => {
+            eprintln!(
+                "The workload file at {} was not found.",
+                file.to_str().unwrap()
+            );
+            return;
+        }
+        Err(ConfigError::WorkloadValidation(e)) => {
+            eprintln!("Invalid workload: {}", e);
+            return;
+        }
+        Err(ConfigError::WorkloadJsonParse(e)) => {
+            eprintln!("Invalid workload: {}", e);
+            return;
+        }
+        Err(ConfigError::WorkloadYamlParse(e)) => {
+            eprintln!("Invalid workload: {}", e);
+            return;
+        }
+        Err(ConfigError::IO(e)) => {
+            eprintln!("{}", e);
+            return;
+        }
+    };
 
-    let (config, args) = cfg_result.unwrap();
     println!(
         "Loaded configuration file from {}",
-        args.config_file.canonicalize().ok().unwrap().display()
+        args.workload_file.canonicalize().ok().unwrap().display()
     );
 
     let mut processor = ProcessorBuilder::new(&registries, STD_NAMESPACE)
-        .set_domain_generator(&config.domain.r#type, &config.domain.args)
+        .set_domain_generator(&workload.domain.r#type, &workload.domain.args)
         .expect("Failed to configure the domain generator.")
-        .set_sample_size(config.domain.sample_size)
-        .set_workers(args.workers);
+        .set_sample_size(workload.domain.sample_size)
+        .set_workers(args.threads);
 
-    for step in config.pipeline.iter() {
+    for step in workload.pipeline.iter() {
         processor = processor
             .add_pipeline_step(&step.name, &step.r#type, &step.args)
             .expect("Failed to configure pipeline step.");
     }
 
-    for sink in config.sink.iter() {
+    for sink in workload.sink.iter() {
         processor = processor
             .add_sink(&sink.name, &sink.r#type, &sink.args)
             .expect("Failed to configure sink.");
