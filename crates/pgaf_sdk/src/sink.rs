@@ -15,6 +15,9 @@ type SinkOutput = Result<(), Box<dyn Error>>;
 /// immutable for the lifetime of the invocation: a sink's args do **not** depend on any
 /// individual [`Context`], so a plain [`serde_json::Value`] is deserialized straight into `A`
 /// with no per-item, context-seeded evaluation.
+///
+/// See the [crate-level tracing contract](crate) for how implementations must
+/// report diagnostics.
 pub trait SinkType<A>: Send + Sync {
     fn invoke(args: A, stream: SinkStream) -> SinkOutput;
 }

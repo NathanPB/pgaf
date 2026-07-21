@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::fmt::Display;
 use std::marker::PhantomData;
 use std::sync::Arc;
+use tracing::warn;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum PipelineStepTypeArgs {
@@ -42,6 +43,9 @@ impl serde::de::Error for PipelineStepTypeArgParseError {
 /// Argument deserialization happens per item, so any [`ContextValue`] expressions
 /// in the args (identifiers, templates, function calls) are resolved against the
 /// specific [`Context`] flowing through at that moment.
+///
+/// See the [crate-level tracing contract](crate) for how implementations must
+/// report diagnostics.
 pub trait PipelineStepType<A>: Send + Sync {
     fn invoke(stream: Box<dyn Iterator<Item = (A, Context)>>) -> Box<dyn Iterator<Item = Context>>;
 }
@@ -79,7 +83,7 @@ fn invoker_impl<F: PipelineStepType<A>, A: DeserializeOwned + 'static>(
 ) -> Box<dyn Iterator<Item = Context>> {
     let deserialized = Box::new(input.filter_map(move |ctx| {
         let a = deserializer::deserialize_args::<A>(&args, &ctx)
-            .inspect_err(|e| eprintln!("Pipeline step error at unit {}: {e}", ctx.unit.id))
+            .inspect_err(|e| warn!(unit.id = %ctx.unit.id, error = %e, "step args failed"))
             .ok()?;
         Some((a, ctx))
     }));

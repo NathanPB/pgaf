@@ -29,6 +29,8 @@ impl serde::de::Error for FunctionArgParseError {
     }
 }
 
+/// See the [crate-level tracing contract](crate) for how implementations must
+/// report diagnostics.
 pub trait Function<A>: Send + Sync {
     fn invoke(args: A, ctx: &Context) -> Result<PrimitiveContextValue, FunctionRuntimeError>;
 }

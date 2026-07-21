@@ -11,6 +11,9 @@ pub trait DomainGenerator: Iterator<Item = ExecutionUnit> {}
 impl<T: Iterator<Item = ExecutionUnit>> DomainGenerator for T {}
 
 /// Trait for constructing a [`DomainGenerator`] from a deserialized config.
+///
+/// See the [crate-level tracing contract](crate) for how implementations must
+/// report diagnostics.
 pub trait DomainGeneratorCreate<C>: Send + Sync {
     type Generator: DomainGenerator + 'static;
     fn create(config: C) -> Result<Self::Generator, Box<dyn Error>>;

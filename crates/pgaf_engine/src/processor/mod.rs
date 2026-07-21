@@ -1,3 +1,17 @@
+//! ## Where the ambient tracing fields come from
+//!
+//! `pgaf_sdk`'s tracing contract promises `step.name`/`step.type` and
+//! `sink.name`/`sink.type` to any event a [`pipeline::PipelineStepType`] or
+//! [`sink::SinkType`] implementation emits, without that implementation ever
+//! setting them itself. This module is where that promise is kept, and
+//! nowhere else: [`PipelineEntry`]/[`SinkEntry`] retain `name`/`id` past
+//! deserialization purely so this module's private `pipeline_step` and
+//! `run_sink` functions can attach them to a span, which `Spanned` (for
+//! steps) and `#[instrument]` (for sinks) then hold open around the driver's
+//! `invoke` call. Any `warn!`/`error!`/span the driver's own code opens nests
+//! inside and inherits the fields automatically — see each function's doc
+//! for specifics.
+
 pub mod builder;
 mod serializer;
 
@@ -11,6 +25,12 @@ use std::thread;
 use std::time::Instant;
 use tracing::Span;
 
+/// A configured pipeline step.
+///
+/// `name` and `id` survive past [`builder`] specifically so this module's
+/// private `pipeline_step` function can attach them as the `step` span's
+/// `step.name`/`step.type` fields — they have no other runtime use once the
+/// driver is resolved.
 pub struct PipelineEntry {
     pub name: String,
     pub id: PublicIdentifier,
@@ -18,6 +38,12 @@ pub struct PipelineEntry {
     pub args: Arc<pipeline::PipelineStepTypeArgs>,
 }
 
+/// A configured sink.
+///
+/// `name` and `id` survive past [`builder`] specifically so this module's
+/// private `run_sink` function can attach them as the `sink` span's
+/// `sink.name`/`sink.type` fields — they have no other runtime use once the
+/// driver is resolved.
 pub struct SinkEntry {
     pub name: String,
     pub id: PublicIdentifier,
@@ -36,6 +62,13 @@ type ContextStream = Box<dyn Iterator<Item = Context>>;
 
 /// Enters `span` around each pull, attributing per-item work inside a lazy pipeline stage
 /// to that stage's span.
+///
+/// This is the mechanism, not just the timing, that makes `step.name`/`step.type`
+/// ambient: `span` is entered for the whole duration of each `next()` call, so
+/// anything the wrapped stage's iterator does while producing an item —
+/// including events the [`pipeline::PipelineStepType`] implementation emits
+/// deep inside its own logic — happens with this span current, and inherits
+/// its fields without the implementation referencing them.
 struct Spanned<I> {
     inner: I,
     span: Span,
@@ -132,6 +165,11 @@ fn run_feed(ctx_gen: ContextGenerator, tx: crossbeam_channel::Sender<Context>) -
     units_sent
 }
 
+/// Attaches `worker.id` once, here, via `#[instrument]`. Every `step` span
+/// opened by [`pipeline_step`] during this worker's fold nests under this
+/// span, so `worker.id` reaches those (and anything they contain) through
+/// ordinary span-parent inheritance — nothing downstream needs to know its
+/// own worker index.
 #[tracing::instrument(
     name = "worker",
     level = "debug",
@@ -159,6 +197,11 @@ fn run_worker(
     tracing::debug!(units.out = units_out, "worker complete");
 }
 
+/// Builds the `step` span carrying `step.name`/`step.type` and wraps the
+/// driver's output in it via [`Spanned`]. This is the *only* place those two
+/// fields get attached — [`pipeline::PipelineStepType`] implementations never
+/// set them (e.g. `pgaf_sdk`'s own per-item arg-deserialization `warn!` picks
+/// them up this way, with no `step.name` field of its own).
 fn pipeline_step(input: ContextStream, entry: &PipelineEntry) -> ContextStream {
     // NOTE: Do not remove the Spanned wrapping.
     // Entering the span at the driver call site would measure construction, not execution.
@@ -170,6 +213,11 @@ fn pipeline_step(input: ContextStream, entry: &PipelineEntry) -> ContextStream {
     })
 }
 
+/// Attaches `sink.name`/`sink.type` via `#[instrument]` — the sink-side
+/// counterpart to [`pipeline_step`]. The driver's `invoke` call, and the
+/// `error!` below, run with this span current, so [`sink::SinkType`]
+/// implementations (and this function's own error report) get sink identity
+/// without adding it themselves.
 #[tracing::instrument(
     name = "sink",
     level = "debug",

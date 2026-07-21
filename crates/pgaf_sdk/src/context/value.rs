@@ -4,6 +4,7 @@ use crate::{
     registry::{PublicIdentifier, PublicIdentifierError},
 };
 use serde::{Deserialize, Serialize};
+use tracing::instrument;
 
 #[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
 #[serde(untagged)]
@@ -52,6 +53,26 @@ impl PrimitiveContextValue {
 }
 
 impl ContextValue {
+    /// Variant name for the `value.type` tracing field. Used to group [`Self::to_prim`]
+    /// span timings by the kind of expression evaluated.
+    fn kind(&self) -> &'static str {
+        match self {
+            ContextValue::StringTemplate(_) => "template",
+            ContextValue::Prim(_) => "prim",
+            ContextValue::Function { .. } => "function",
+            ContextValue::Ident(_) => "ident",
+        }
+    }
+
+    /// Evaluates this expression to a [`PrimitiveContextValue`] against `ctx`.
+    ///
+    /// Recurses for [`ContextValue::Ident`] and [`ContextValue::StringTemplate`].
+    ///
+    /// ## Instrumentation
+    ///
+    /// Each recursion re-entering this same instrumented span with its own
+    /// `value.type`, so nested busy time is attributed to the inner expression.
+    #[instrument(level = "trace", skip_all, fields(value.type = self.kind()))]
     pub fn to_prim(&self, ctx: &Context) -> Result<PrimitiveContextValue, ContextEvaluationError> {
         match self {
             ContextValue::Prim(p) => Ok(p.clone()),

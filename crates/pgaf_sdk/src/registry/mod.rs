@@ -16,6 +16,7 @@ use std::{
     collections::{HashMap, HashSet},
     sync::LazyLock,
 };
+use tracing::{debug, instrument};
 
 pub use identifier::{PublicIdentifier, PublicIdentifierError, PublicIdentifierSeed};
 pub use namespace::Namespace;
@@ -80,6 +81,7 @@ impl<T: Resource> Registry<T> {
     /// - [`AlreadyRegisteredError`] if `id` is already registered.
     ///
     /// Returns itself on success, for convenience.
+    #[instrument(level = "debug", skip_all, fields(namespace = %namespace, id = id))]
     pub fn register(
         &mut self,
         namespace: &Namespace,
@@ -93,6 +95,7 @@ impl<T: Resource> Registry<T> {
 
         self.map
             .insert((namespace.to_string(), id.to_string()), resource);
+        debug!("resource registered");
         Ok(self)
     }
 
@@ -164,6 +167,7 @@ impl Registries {
     /// For instance, the embedded module will claim the `std` namespace upon application startup.
     /// Plugins that wish to extend the functionality and register their own [`Resource`]s will be provided with a namespace for themselves
     /// and shall it to register all of their [`Resource`]s.
+    #[instrument(level = "debug", skip_all, fields(namespace = namespace))]
     pub fn claim_namespace(&mut self, namespace: &'static str) -> Result<Namespace, RegistryError> {
         let namespace = Namespace::build(namespace)?;
         if self.namespaces.contains(&namespace) {
@@ -174,6 +178,7 @@ impl Registries {
 
         //TODO: I think Registries::Namespaces should be HashSet<String> after all.
         self.namespaces.insert(namespace.clone());
+        debug!("namespace claimed");
         Ok(namespace)
     }
 
