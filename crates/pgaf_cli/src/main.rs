@@ -18,10 +18,10 @@ fn main() {
         return;
     }
 
-    let (config, args, config_file) = cfg_result.unwrap();
+    let (config, args) = cfg_result.unwrap();
     println!(
         "Loaded configuration file from {}",
-        config_file.canonicalize().ok().unwrap().display()
+        args.config_file.canonicalize().ok().unwrap().display()
     );
 
     let mut processor = ProcessorBuilder::new(&registries, STD_NAMESPACE)

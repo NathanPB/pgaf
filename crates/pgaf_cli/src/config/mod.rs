@@ -65,9 +65,9 @@ pub struct Sink {
 #[derive(Validate, Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct Args {
-    /// Path to the JSON configuration file.
-    #[arg(short, long, default_value = "config.json")]
-    pub config_file: String,
+    /// Path to the JSON or YAML configuration file.
+    #[arg(short, long)]
+    pub config_file: PathBuf,
 
     /// Number of workers to use for parallel processing. If 0, will use all available cores.
     #[arg(short, long, default_value_t = 0)]
@@ -85,20 +85,30 @@ fn validate(args: &Args, config: &Config) -> Result<(), ConfigError> {
     Ok(())
 }
 
-pub fn init() -> Result<(Config, Args, PathBuf), ConfigError> {
+pub fn init() -> Result<(Config, Args), ConfigError> {
     let args = Args::parse();
-    let path = PathBuf::from(&args.config_file.clone());
-    if !path.exists() || !path.is_file() {
-        return Err(ConfigError::ConfigFileNotFound(path.clone()));
+    if !args.config_file.exists() || !args.config_file.is_file() {
+        return Err(ConfigError::ConfigFileNotFound(args.config_file.clone()));
     }
 
-    let json_str = std::fs::read_to_string(args.config_file.clone())
+    let config_contents = std::fs::read_to_string(&args.config_file)
         .map_err(|e| ConfigError::ConfigLoadError(Box::new(e)))?;
 
-    let config: Config = serde_json::de::from_str(&json_str)
-        .map_err(|e| ConfigError::ConfigLoadError(Box::new(e)))?;
+    let is_yaml = args
+        .config_file
+        .extension()
+        .map(|ext| ext == "yml" || ext == "yaml")
+        .unwrap_or(false);
+
+    let config: Config = if is_yaml {
+        serde_saphyr::from_str(&config_contents)
+            .map_err(|e| ConfigError::ConfigLoadError(Box::new(e)))?
+    } else {
+        serde_json::de::from_str(&config_contents)
+            .map_err(|e| ConfigError::ConfigLoadError(Box::new(e)))?
+    };
 
     validate(&args, &config)?;
 
-    Ok((config, args, path))
+    Ok((config, args))
 }
