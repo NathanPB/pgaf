@@ -1,8 +1,8 @@
-use super::{Processor, serializer::PipelineStepTypeArgsDeserializer};
+use super::{PipelineEntry, Processor, SinkEntry, serializer::PipelineStepTypeArgsDeserializer};
 use crate::context::generator::ContextGenerator;
 use crate::context::value::ContextValueDeserializeSeed;
 use pgaf_sdk::registry::PublicIdentifier;
-use pgaf_sdk::{domain, pipeline, registry, sink};
+use pgaf_sdk::{domain, registry};
 use serde::de::DeserializeSeed;
 use std::sync::Arc;
 use std::thread;
@@ -31,8 +31,8 @@ pub struct ProcessorBuilder<'a, D = NoDomainGenerator> {
     sample_size: Option<usize>,
     registries: &'a registry::Registries,
     pipeline_step_type_args_deserializer: PipelineStepTypeArgsDeserializer<'a>,
-    pipeline: Vec<(pipeline::Driver, Arc<pipeline::PipelineStepTypeArgs>)>,
-    sinks: Vec<(sink::Driver, serde_json::Value)>,
+    pipeline: Vec<PipelineEntry>,
+    sinks: Vec<SinkEntry>,
 }
 
 impl<'a> ProcessorBuilder<'a, NoDomainGenerator> {
@@ -93,7 +93,12 @@ impl<'a, D> ProcessorBuilder<'a, D> {
             .0
             .clone();
 
-        self.pipeline.push((driver, Arc::new(args)));
+        self.pipeline.push(PipelineEntry {
+            name: name.to_string(),
+            id: identifier.clone(),
+            driver,
+            args: Arc::new(args),
+        });
         Ok(self)
     }
 
@@ -113,7 +118,12 @@ impl<'a, D> ProcessorBuilder<'a, D> {
             .0
             .clone();
 
-        self.sinks.push((driver, raw_args.clone()));
+        self.sinks.push(SinkEntry {
+            name: name.to_string(),
+            id: identifier.clone(),
+            driver,
+            args: raw_args.clone(),
+        });
         Ok(self)
     }
 

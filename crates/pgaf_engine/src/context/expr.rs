@@ -86,6 +86,7 @@ impl From<pest::iterators::Pair<'_, Rule>> for Expr {
 impl<'a> TryFrom<&'a str> for Expr {
     type Error = pest::error::Error<Rule>;
 
+    #[tracing::instrument(level = "debug", skip_all, fields(input.len = input.len()))]
     fn try_from(input: &'a str) -> Result<Self, Self::Error> {
         let mut pairs = EvalParser::parse(Rule::main, input)?;
         let top_level = pairs.next().expect("top_level ast member not found.");

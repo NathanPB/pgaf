@@ -39,7 +39,6 @@ impl<'de> DeserializeSeed<'de> for ContextValueDeserializeSeed<'de> {
     }
 }
 
-#[allow(clippy::only_used_in_recursion)]
 fn expr_to_context_value(
     expr: Expr,
     registries: &Registries,
