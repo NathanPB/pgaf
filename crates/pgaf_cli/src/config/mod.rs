@@ -6,7 +6,7 @@ use deserialize::deserialize_public_identifier;
 use pgaf_sdk::registry;
 use serde::{Deserialize, Serialize};
 use serde_inline_default::serde_inline_default;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use validate::{RE_GENERAL_NAME, validate_unique_pipeline_names, validate_unique_sink_names};
 use validator::{Validate, ValidationErrors};
 
@@ -76,20 +76,31 @@ pub struct Args {
     /// Number of threads to use for parallel processing. If 0, will use all available cores.
     #[arg(short, long, default_value_t = 0)]
     pub threads: usize,
+
+    /// Increase log verbosity (-v debug for pgaf, -vv trace for pgaf, -vvv trace for everything).
+    #[arg(short, long, action = clap::ArgAction::Count, conflicts_with = "quiet")]
+    pub verbose: u8,
+
+    /// Only show warnings and errors.
+    #[arg(short, long)]
+    pub quiet: bool,
 }
 
-pub fn init() -> Result<(Workload, Args), ConfigError> {
-    let args = Args::parse();
-    if !args.workload_file.exists() || !args.workload_file.is_file() {
+pub fn parse_args() -> Args {
+    Args::parse()
+}
+
+#[tracing::instrument(level = "debug", skip_all, fields(path = %workload_file.display()))]
+pub fn load_workload(workload_file: &Path) -> Result<Workload, ConfigError> {
+    if !workload_file.exists() || !workload_file.is_file() {
         return Err(ConfigError::WorkloadFileNotFound(
-            args.workload_file.clone(),
+            workload_file.to_path_buf(),
         ));
     }
 
-    let workload_contents = std::fs::read_to_string(&args.workload_file)?;
+    let workload_contents = std::fs::read_to_string(workload_file)?;
 
-    let is_yaml = args
-        .workload_file
+    let is_yaml = workload_file
         .extension()
         .map(|ext| ext == "yml" || ext == "yaml")
         .unwrap_or(false);
@@ -104,5 +115,5 @@ pub fn init() -> Result<(Workload, Args), ConfigError> {
         .validate()
         .map_err(ConfigError::WorkloadValidation)?;
 
-    Ok((workload, args))
+    Ok(workload)
 }
