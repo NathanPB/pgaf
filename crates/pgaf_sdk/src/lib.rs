@@ -4,3 +4,4 @@ pub mod domain;
 pub mod function;
 pub mod pipeline;
 pub mod registry;
+pub mod sink;

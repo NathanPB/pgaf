@@ -1,4 +1,4 @@
-use crate::{domain, function, pipeline};
+use crate::{domain, function, pipeline, sink};
 
 use super::Resource;
 
@@ -13,3 +13,7 @@ impl Resource for FunctionDriverResource {}
 #[derive(Clone)]
 pub struct PipelineStepTypeDriverResource(pub pipeline::Driver);
 impl Resource for PipelineStepTypeDriverResource {}
+
+#[derive(Clone)]
+pub struct SinkTypeDriverResource(pub sink::Driver);
+impl Resource for SinkTypeDriverResource {}

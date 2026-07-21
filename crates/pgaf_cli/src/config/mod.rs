@@ -7,7 +7,7 @@ use pgaf_sdk::registry;
 use serde::{Deserialize, Serialize};
 use serde_inline_default::serde_inline_default;
 use std::path::PathBuf;
-use validate::{RE_PIPELINE_STEP_NAME, validate_unique_pipeline_names};
+use validate::{RE_GENERAL_NAME, validate_unique_pipeline_names, validate_unique_sink_names};
 use validator::{Validate, ValidationError};
 
 #[derive(thiserror::Error, Debug)]
@@ -28,6 +28,11 @@ pub struct Config {
     #[validate(nested)]
     #[validate(custom(function = "validate_unique_pipeline_names"))]
     pub pipeline: Vec<PipelineStep>,
+
+    #[validate(nested)]
+    #[validate(custom(function = "validate_unique_sink_names"))]
+    #[serde(default)]
+    pub sink: Vec<Sink>,
 }
 
 #[derive(Validate, Debug, Deserialize, Clone)]
@@ -41,7 +46,16 @@ pub struct DomainConfig {
 
 #[derive(Validate, Serialize, Deserialize, Clone, Debug)]
 pub struct PipelineStep {
-    #[validate(regex(path = *RE_PIPELINE_STEP_NAME, message = "Pipeline name must be alphanumeric and contain only underscores and dashes"))]
+    #[validate(regex(path = *RE_GENERAL_NAME, message = "Pipeline name must be alphanumeric and contain only underscores and dashes"))]
+    pub name: String,
+    #[serde(deserialize_with = "deserialize_public_identifier")]
+    pub r#type: registry::PublicIdentifier,
+    pub args: serde_json::Value,
+}
+
+#[derive(Validate, Serialize, Deserialize, Clone, Debug)]
+pub struct Sink {
+    #[validate(regex(path = *RE_GENERAL_NAME, message = "Sink name must be alphanumeric and contain only underscores and dashes"))]
     pub name: String,
     #[serde(deserialize_with = "deserialize_public_identifier")]
     pub r#type: registry::PublicIdentifier,

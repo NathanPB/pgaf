@@ -2,7 +2,7 @@ use super::{Processor, serializer::PipelineStepTypeArgsDeserializer};
 use crate::context::generator::ContextGenerator;
 use crate::context::value::ContextValueDeserializeSeed;
 use pgaf_sdk::registry::PublicIdentifier;
-use pgaf_sdk::{domain, pipeline, registry};
+use pgaf_sdk::{domain, pipeline, registry, sink};
 use serde::de::DeserializeSeed;
 use std::sync::Arc;
 use std::thread;
@@ -17,6 +17,8 @@ pub enum ProcessorBuilderError {
     DomainGeneratorDriverNotFound(PublicIdentifier),
     #[error("Failed to create domain generator: {0}")]
     DomainGeneratorCreation(Box<dyn std::error::Error>),
+    #[error("No sink type registered for ID '{1}' (sink {0})")]
+    SinkTypeIdNotFound(String, PublicIdentifier),
 }
 
 pub struct NoDomainGenerator;
@@ -30,6 +32,7 @@ pub struct ProcessorBuilder<'a, D = NoDomainGenerator> {
     registries: &'a registry::Registries,
     pipeline_step_type_args_deserializer: PipelineStepTypeArgsDeserializer<'a>,
     pipeline: Vec<(pipeline::Driver, Arc<pipeline::PipelineStepTypeArgs>)>,
+    sinks: Vec<(sink::Driver, serde_json::Value)>,
 }
 
 impl<'a> ProcessorBuilder<'a, NoDomainGenerator> {
@@ -46,6 +49,7 @@ impl<'a> ProcessorBuilder<'a, NoDomainGenerator> {
                 },
             ),
             pipeline: vec![],
+            sinks: vec![],
         }
     }
 }
@@ -93,6 +97,26 @@ impl<'a, D> ProcessorBuilder<'a, D> {
         Ok(self)
     }
 
+    pub fn add_sink(
+        mut self,
+        name: &str,
+        identifier: &PublicIdentifier,
+        raw_args: &serde_json::Value,
+    ) -> Result<Self, ProcessorBuilderError> {
+        let driver = self
+            .registries
+            .reg_sink_drivers()
+            .get(identifier)
+            .ok_or_else(|| {
+                ProcessorBuilderError::SinkTypeIdNotFound(name.to_string(), identifier.clone())
+            })?
+            .0
+            .clone();
+
+        self.sinks.push((driver, raw_args.clone()));
+        Ok(self)
+    }
+
     pub fn set_domain_generator(
         self,
         identifier: &PublicIdentifier,
@@ -118,6 +142,7 @@ impl<'a, D> ProcessorBuilder<'a, D> {
             registries: self.registries,
             pipeline_step_type_args_deserializer: self.pipeline_step_type_args_deserializer,
             pipeline: self.pipeline,
+            sinks: self.sinks,
         })
     }
 }
@@ -137,6 +162,7 @@ impl<'a> ProcessorBuilder<'a, WithDomainGenerator> {
         Processor {
             ctx_gen,
             pipeline: self.pipeline,
+            sinks: self.sinks,
             workers,
         }
     }

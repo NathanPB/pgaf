@@ -21,6 +21,7 @@ pub use identifier::{PublicIdentifier, PublicIdentifierError, PublicIdentifierSe
 pub use namespace::Namespace;
 pub use resources::{
     DomainGeneratorDriverResource, FunctionDriverResource, PipelineStepTypeDriverResource,
+    SinkTypeDriverResource,
 };
 pub use serialize::{DeserializedResource, ResourceSeed};
 
@@ -153,6 +154,7 @@ pub struct Registries {
     reg_domaingen_drivers: Registry<DomainGeneratorDriverResource>,
     reg_function_drivers: Registry<FunctionDriverResource>,
     reg_pipelinestep_drivers: Registry<PipelineStepTypeDriverResource>,
+    reg_sink_drivers: Registry<SinkTypeDriverResource>,
 }
 
 impl Registries {
@@ -197,6 +199,14 @@ impl Registries {
 
     pub fn regmut_pipelinestep_drivers(&mut self) -> &mut Registry<PipelineStepTypeDriverResource> {
         &mut self.reg_pipelinestep_drivers
+    }
+
+    pub fn reg_sink_drivers(&self) -> &Registry<SinkTypeDriverResource> {
+        &self.reg_sink_drivers
+    }
+
+    pub fn regmut_sink_drivers(&mut self) -> &mut Registry<SinkTypeDriverResource> {
+        &mut self.reg_sink_drivers
     }
 }
 

@@ -36,5 +36,11 @@ fn main() {
             .expect("Failed to configure pipeline step.");
     }
 
+    for sink in config.sink.iter() {
+        processor = processor
+            .add_sink(&sink.name, &sink.r#type, &sink.args)
+            .expect("Failed to configure sink.");
+    }
+
     processor.build().start();
 }
