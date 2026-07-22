@@ -11,6 +11,28 @@
 //! `invoke` call. Any `warn!`/`error!`/span the driver's own code opens nests
 //! inside and inherits the fields automatically — see each function's doc
 //! for specifics.
+//!
+//! ## Tracing rules when changing this module
+//!
+//! The span topology is fixed: a `run` span (owned by the caller, typically
+//! the CLI), with `feed` on the main thread, one `worker` span per worker
+//! thread, per-worker `step` spans around each pipeline stage, and one
+//! `sink` span per sink thread.
+//!
+//! - Spans do not follow `thread::spawn`. [`Processor::start`] captures the
+//!   ambient `run` span and hands a clone into every worker and sink thread,
+//!   where `#[instrument(parent = &run, ...)]` re-parents explicitly. A new
+//!   thread must do the same handoff, or everything it emits detaches from
+//!   the run.
+//! - Never enter a span around a call that returns a lazy iterator —
+//!   `Driver::invoke` only constructs the chain, so such a span would
+//!   measure nanoseconds of setup and close before execution. Per-item
+//!   attribution belongs to `Spanned`, which enters the step span around
+//!   each `next()` call instead.
+//! - There is deliberately no per-unit span and no per-unit event at
+//!   `debug` or above: workers see 10⁵–10⁸ units per run, so counters
+//!   aggregate locally and report once, like `feed complete` and
+//!   `worker complete` do.
 
 pub mod builder;
 mod serializer;
